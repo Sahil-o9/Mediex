@@ -186,4 +186,4 @@ export interface CaseListItem {
 }
 
 /** Where cases are persisted; surfaced to the doctor so a temporary store is never mistaken for a real one. */
-export type StorageMode = "memory" | "supabase";
+export type StorageMode = "memory" | "mongodb" | "supabase";

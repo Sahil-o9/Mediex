@@ -1,4 +1,6 @@
 import { env } from "./env.server";
+import { getMongoDb } from "./mongo.server";
+import type { Filter } from "mongodb";
 
 /**
  * Minimal table-store used by every domain service.
@@ -8,12 +10,14 @@ import { env } from "./env.server";
  *                          labelled demo data. Nothing is persisted: a restart
  *                          wipes accounts, appointments and reviews, and it is
  *                          not shared between serverless instances.
+ *   - mongodb            — MongoDB Atlas through the native server-side driver.
+ *                          Select with DATA_ADAPTER=mongodb. MONGODB_URI stays
+ *                          server-side.
  *   - supabase           — PostgreSQL through Supabase's REST API (PostgREST),
  *                          using the SERVICE-ROLE key on the server only.
- *                          Select with DATA_ADAPTER=supabase. Schema:
- *                          supabase/schema.sql.
+ *                          Select with DATA_ADAPTER=supabase.
  *
- * Rows are camelCase in code and snake_case in Postgres; the adapter converts.
+ * Rows are stored in collections; the public `id` maps to MongoDB's `_id`.
  */
 
 export type Row = { id: string } & Record<string, unknown>;
@@ -28,7 +32,7 @@ export interface Table<T extends Row> {
 }
 
 /* ------------------------------------------------------------------ *
- * Row types (one per table in supabase/schema.sql)
+ * Row types (one per persistent table or collection)
  * ------------------------------------------------------------------ */
 
 export type AccountRole = "patient" | "doctor" | "admin";
@@ -186,7 +190,7 @@ export interface TableMap {
 export type TableName = keyof TableMap;
 
 export interface Db {
-  mode: "memory" | "supabase";
+  mode: "memory" | "mongodb" | "supabase";
   table<N extends TableName>(name: N): Table<TableMap[N]>;
 }
 
@@ -346,17 +350,75 @@ function supabaseDb(url: string, serviceKey: string): Db {
   };
 }
 
-/** True when a write failed because a unique constraint rejected it (Postgres 23505). */
+function mongoDb(): Db {
+  return {
+    mode: "mongodb",
+    table<N extends TableName>(name: N): Table<TableMap[N]> {
+      type T = TableMap[N];
+      type Stored = Row & { _id?: string };
+
+      return {
+        async all() {
+          const db = await getMongoDb();
+          const rows = await db.collection<Stored>(name).find({}).toArray();
+          return rows.map(({ _id, ...row }) => row as T);
+        },
+        async get(id) {
+          const db = await getMongoDb();
+          const row = await db.collection<Stored>(name).findOne({ _id: id });
+          if (!row) return null;
+          const { _id, ...result } = row;
+          return result as T;
+        },
+        async where(field, value) {
+          if (!FIELD_RE.test(field)) throw new Error("bad_field");
+          const db = await getMongoDb();
+          const rows = await db
+            .collection<Stored>(name)
+            .find({ [field]: value } as Filter<Stored>)
+            .toArray();
+          return rows.map(({ _id, ...row }) => row as T);
+        },
+        async insert(row) {
+          const db = await getMongoDb();
+          await db.collection<Stored>(name).insertOne({ ...row, _id: row.id });
+          return row;
+        },
+        async update(id, patch) {
+          const db = await getMongoDb();
+          const { id: _rowId, ...changes } = patch;
+          const collection = db.collection<Stored>(name);
+          const result = await collection.updateOne({ _id: id }, { $set: changes });
+          if (!result.matchedCount) return null;
+          const row = await collection.findOne({ _id: id });
+          if (!row) return null;
+          const { _id, ...updated } = row;
+          return updated as T;
+        },
+        async remove(id) {
+          const db = await getMongoDb();
+          const result = await db.collection<Stored>(name).deleteOne({ _id: id });
+          return result.deletedCount > 0;
+        },
+      };
+    },
+  };
+}
+
+/** True when a write failed because a unique constraint rejected it. */
 export function isUniqueViolation(e: unknown): boolean {
   return (
     !!e &&
     typeof e === "object" &&
-    ((e as { code?: string }).code === "23505" || (e as Error).message === "duplicate_id")
+    ((e as { code?: string | number }).code === "23505" ||
+      (e as { code?: number }).code === 11000 ||
+      (e as Error).message === "duplicate_id")
   );
 }
 
 export function getDb(): Db {
-  const adapter = env("DATA_ADAPTER") ?? "memory";
+  const adapter = env("DATA_ADAPTER") ?? (env("MONGODB_URI") ? "mongodb" : "memory");
+  if (adapter === "mongodb") return mongoDb();
   if (adapter === "supabase") {
     const url = env("SUPABASE_URL");
     const key = env("SUPABASE_SERVICE_ROLE_KEY");
@@ -365,5 +427,6 @@ export function getDb(): Db {
     }
     return supabaseDb(url, key);
   }
+  if (adapter !== "memory") throw new DbConfigError(`Unsupported DATA_ADAPTER: ${adapter}`);
   return memoryDb();
 }

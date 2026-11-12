@@ -18,7 +18,7 @@ import type { Doctor, Patient } from "@/types";
 
 export interface ServerConfig {
   configured: boolean;
-  storage: "memory" | "supabase";
+  storage: "memory" | "mongodb" | "supabase";
   otpMode: "demo" | "unconfigured";
   demoAccounts: boolean;
 }

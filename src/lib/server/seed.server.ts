@@ -18,7 +18,7 @@ import type {
 } from "./db.server.ts";
 
 const hex = (n: number, w: number) => n.toString(16).padStart(w, "0");
-/** Deterministic, valid UUIDs so the same demo rows can be loaded into Postgres. */
+/** Deterministic, valid UUIDs so demo rows have stable IDs across deployments. */
 export const demoUuid = (kind: number, n: number) => `${hex(kind, 8)}-0000-4000-8000-${hex(n, 12)}`;
 
 export const DEMO_DOCTOR_LOGIN_ID = "doctor001";

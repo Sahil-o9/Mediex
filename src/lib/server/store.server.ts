@@ -6,6 +6,8 @@ import type {
   StoredCase,
 } from "@/types/consult";
 import { env } from "./env.server";
+import { Binary } from "mongodb";
+import { getMongoDb } from "./mongo.server";
 
 /**
  * Persistence for submitted cases and (optionally) the patient's original files.
@@ -15,9 +17,9 @@ import { env } from "./env.server";
  *                           data is lost on restart and is NOT shared between
  *                           serverless instances. The doctor dashboard shows a
  *                           warning banner in this mode.
- *   - supabase            — Postgres (table `cases`) + a PRIVATE Storage bucket,
- *                           accessed server-side with the service-role key.
- *                           See supabase/schema.sql. Select with DATA_ADAPTER=supabase.
+ *   - mongodb             — MongoDB Atlas stores cases and original files in
+ *                           separate collections. Select with DATA_ADAPTER=mongodb.
+ *   - supabase            — Postgres (table `cases`) + a PRIVATE Storage bucket.
  */
 
 export interface StoredFile {
@@ -211,10 +213,114 @@ function supabase(url: string, serviceKey: string, bucket: string): CaseReposito
   };
 }
 
+interface MongoFile {
+  _id?: string;
+  caseId: string;
+  bytes: Binary;
+  mime: string;
+  name: string;
+}
+
+function mongoStore(): CaseRepository {
+  async function load(id: string): Promise<StoredCase | null> {
+    if (!ID_PATTERN.test(id)) return null;
+    const db = await getMongoDb();
+    const document = await db.collection<StoredCase & { _id: string }>("cases").findOne({
+      _id: id,
+    });
+    if (!document) return null;
+    const { _id, ...storedCase } = document;
+    return storedCase;
+  }
+
+  async function save(c: StoredCase): Promise<StoredCase> {
+    c.updatedAt = new Date().toISOString();
+    const db = await getMongoDb();
+    await db.collection<StoredCase & { _id: string }>("cases").replaceOne({ _id: c.id }, c);
+    return c;
+  }
+
+  return {
+    mode: "mongodb",
+    async create(c, files) {
+      const db = await getMongoDb();
+      const cases = db.collection<StoredCase & { _id: string }>("cases");
+      const storedFiles = db.collection<MongoFile>("case_files");
+      await cases.insertOne({ ...c, _id: c.id });
+      try {
+        if (files.size) {
+          await storedFiles.insertMany(
+            [...files].map(([docId, file]) => ({
+              _id: `${c.id}/${docId}`,
+              caseId: c.id,
+              bytes: new Binary(file.bytes),
+              mime: file.mime,
+              name: file.name,
+            })),
+          );
+        }
+      } catch (error) {
+        try {
+          await storedFiles.deleteMany({ caseId: c.id });
+          await cases.deleteOne({ _id: c.id });
+        } catch (cleanupError) {
+          throw new AggregateError(
+            [error, cleanupError],
+            "Case storage failed and partial data cleanup also failed",
+          );
+        }
+        throw error;
+      }
+    },
+    async list() {
+      const db = await getMongoDb();
+      const cases = await db
+        .collection<StoredCase & { _id: string }>("cases")
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(200)
+        .toArray();
+      return cases.map(({ _id, ...c }) => toListItem(c));
+    },
+    get: load,
+    async setStatus(id, status) {
+      const c = await load(id);
+      if (!c) return null;
+      c.status = status;
+      return save(c);
+    },
+    async addNote(id, note) {
+      const c = await load(id);
+      if (!c) return null;
+      c.notes.push(note);
+      return save(c);
+    },
+    async getFile(caseId, docId) {
+      if (!ID_PATTERN.test(caseId) || !ID_PATTERN.test(docId)) return null;
+      const c = await load(caseId);
+      const meta = c?.documents.find((d) => d.id === docId && d.hasOriginal);
+      if (!meta) return null;
+      const db = await getMongoDb();
+      const file = await db.collection<MongoFile>("case_files").findOne({
+        _id: `${caseId}/${docId}`,
+      });
+      if (!file) return null;
+      return {
+        bytes: new Uint8Array(file.bytes.value()),
+        mime: meta.mime,
+        name: meta.fileName,
+      };
+    },
+  };
+}
+
 export class StoreConfigError extends Error {}
 
 export function getStore(): CaseRepository {
-  const adapter = env("DATA_ADAPTER") ?? "memory";
+  const adapter = env("DATA_ADAPTER") ?? (env("MONGODB_URI") ? "mongodb" : "memory");
+  if (adapter === "mongodb") {
+    return mongoStore();
+  }
   if (adapter === "supabase") {
     const url = env("SUPABASE_URL");
     const key = env("SUPABASE_SERVICE_ROLE_KEY");
@@ -222,5 +328,6 @@ export function getStore(): CaseRepository {
       throw new StoreConfigError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required");
     return supabase(url, key, env("SUPABASE_DOCS_BUCKET") ?? "case-documents");
   }
+  if (adapter !== "memory") throw new StoreConfigError(`Unsupported DATA_ADAPTER: ${adapter}`);
   return memory();
 }

@@ -63,41 +63,59 @@ npm run test:api
 
 The smoke test creates temporary accounts; run it once per server start.
 
-## Deploy a Cloudflare demo
+## Deploy on Vercel with MongoDB Atlas
 
-The root TanStack Start app builds for Cloudflare Workers. The separate `server/` folder contains an Express backend and is not the deployment target for this app.
+The TanStack Start app, including its `/api/*` routes, deploys as one Vercel application. MongoDB Atlas stores accounts, appointments, doctor directory data, cases, and consented original case files. The separate `server/` Express app is a legacy backend and is not used by the current frontend.
 
-1. Authenticate Wrangler with your Cloudflare account:
+### Prepare MongoDB Atlas
 
-   ```bash
-   npx wrangler login
-   ```
+1. Create an Atlas project and cluster.
+2. Create a database user with a strong password. URL-encode special characters in the password when building the connection string.
+3. Configure the cluster network access list. Vercel serverless functions do not have a single fixed outbound IP on all plans; for a hackathon demo, Atlas may need `0.0.0.0/0`. Use a strong database password and restrict access further if your Vercel plan supports static egress.
+4. Copy the cluster connection string. Keep it private; it is a server-side credential.
 
-2. Install and deploy the demo configuration:
+### Configure Vercel
 
-   ```bash
-   npm ci
-   npm run deploy:worker:demo
-   ```
+1. Push the project to GitHub and import that repository into Vercel. Set the project root to the repository root.
+2. Use Node.js 22 or newer. The build command is `npm run build`; Nitro's Vercel preset produces the deployment output.
+3. Add these environment variables in **Project Settings → Environment Variables** for Production (and Preview if needed):
 
-3. Add a unique session secret to the deployed Worker. Generate a value locally, then paste it when Wrangler prompts:
+   | Variable | Value |
+   | --- | --- |
+   | `DATA_ADAPTER` | `mongodb` |
+   | `MONGODB_URI` | Atlas connection string |
+   | `MONGODB_DB` | `mediex` |
+   | `SESSION_SECRET` | A unique random secret |
+   | `ALLOW_DEMO_ACCOUNTS` | `true` for the hackathon walkthrough; set to `false` afterward |
 
-   ```bash
+4. Generate `SESSION_SECRET` locally and paste it into Vercel. Do not commit it or share it:
+
+   ```powershell
    node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-   npx wrangler secret put SESSION_SECRET --config .output/server/wrangler.json
    ```
 
-The deployment command prints the public URL. Use test accounts to verify patient sign-in, doctor discovery, booking, and the doctor portal.
+5. Redeploy after adding the variables. Open the Vercel deployment URL and test patient registration/sign-in, doctor discovery, appointment booking, and the doctor portal.
 
-For a local Worker preview, copy `.dev.vars.example` to `.dev.vars`, set a unique `SESSION_SECRET`, and run `npm run preview:worker`. `.dev.vars` is git-ignored.
+Vercel handles the app's same-origin API routes, so a separate Render service is not required for this setup.
+
+### Run locally with Atlas
+
+Copy `.env.example` to `.env`, add your Atlas URI and a private local session secret, then run:
+
+```powershell
+npm ci
+npm run dev
+```
+
+`.env` is ignored by Git. MongoDB collections and the demo doctor directory are created/seeded automatically on first use.
 
 ## Prototype implementation notes
 
 - The directory is seeded with example doctors and clinic details; treat those listings as sample content.
-- The default data adapter is in-memory, so accounts and appointments can reset when the server restarts and are not shared reliably between serverless instances.
+- With `DATA_ADAPTER=mongodb`, accounts and appointments persist in MongoDB Atlas and are shared between Vercel function instances. Without a MongoDB URI, local development uses in-memory sample storage.
 - Phone OTP is simulated; no SMS is sent.
 - Hospital and report-analysis areas include sample/incomplete flows. Health guidance is informational and is not a diagnosis.
-- Supabase adapter configuration exists but its schema and live deployment still need implementation and testing before it can provide persistent storage.
+- The MongoDB database stores submitted case details and any original files the patient explicitly consents to share. Use demo data for presentations; this prototype is not a certified healthcare data system.
 
 These are current prototype boundaries, not claims about a production healthcare service.
 

@@ -8,7 +8,7 @@ import { demoAccountsAllowed, env, isProduction } from "./env.server";
  *   (JSON, passwords stored as PBKDF2 hashes — see scripts/hash-password.mjs).
  * - The documented demo doctor works only outside production or when
  *   ALLOW_DEMO_ACCOUNTS=true.
- * - Uses only Web Crypto, so it runs on Node and on Cloudflare Workers.
+ * - Uses Web Crypto so it runs on Node and compatible server runtimes.
  *
  * Registered patients and doctors live in the `accounts` table (see
  * accounts.server.ts); this file only signs/verifies sessions and hashes
@@ -19,7 +19,7 @@ import { demoAccountsAllowed, env, isProduction } from "./env.server";
 
 const COOKIE = "mediex_session";
 const SESSION_SECONDS = 8 * 60 * 60;
-const PBKDF2_ITERATIONS = 100_000; // Cloudflare Workers caps PBKDF2 at 100k
+const PBKDF2_ITERATIONS = 100_000;
 
 const enc = new TextEncoder();
 

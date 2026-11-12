@@ -26,10 +26,6 @@ dist-ssr/
 # Local Configuration Overrides
 *.local
 
-# Wrangler / Cloudflare
-.wrangler/
-.dev.vars
-
 # Editor & OS files
 .vscode/*
 !.vscode/extensions.json

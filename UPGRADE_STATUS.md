@@ -4,7 +4,7 @@
 - src/lib/mediex/: safety.ts (multilingual emergency pre-screen with negation), language.ts (reply-language check),
   findings.ts (range flags computed in code + verification against source text), caseState.ts, documents.ts
 - src/lib/server/*.server.ts: ai, auth (signed-cookie doctor sessions, PBKDF2), guards (CSRF/rate-limit/body size),
-  store (memory + Supabase adapters), documents (PDF text via unpdf, image via vision, never invents values),
+  store (memory + MongoDB adapters), documents (PDF text via unpdf, image via vision, never invents values),
   prompts, sanitize
 - API routes: /api/assistant (rewritten), /api/documents/analyze, /api/case-summary, /api/auth/doctor,
   /api/cases, /api/cases/$caseId, /api/cases/$caseId/documents/$docId
@@ -17,12 +17,12 @@
 - Wiring doctor login to /api/auth/doctor (client still uses the old local demo login)
 - src/lib/mediex/reportAnalysis.ts still returns FAKE sample lab values — to be removed
 - End-to-end API test run against the mock gateway (script not written yet)
-- .env.example, supabase/schema.sql, scripts/hash-password.mjs, docs
-- Supabase adapter is untested against a live project; AI calls untested against the real gateway
+- Vercel deployment and MongoDB Atlas setup are documented in README.md
+- MongoDB adapter is type/build-tested but still needs a live Atlas connection test; AI calls are untested against the real gateway
 
 ## Env vars used so far
 LOVABLE_API_KEY, AI_GATEWAY_URL (optional), AI_MODEL (optional), SESSION_SECRET, DOCTOR_ACCOUNTS,
-ALLOW_DEMO_ACCOUNTS, DATA_ADAPTER (memory|supabase), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DOCS_BUCKET
+ALLOW_DEMO_ACCOUNTS, DATA_ADAPTER (memory|mongodb|supabase), MONGODB_URI, MONGODB_DB
 
 ## Setup
-package-lock.json in the original upload was out of sync with package.json; run `npm install` (not `npm ci`).
+Use Node.js 22.12 or newer and `npm ci`. For current Vercel deployment and local MongoDB setup, follow README.md.

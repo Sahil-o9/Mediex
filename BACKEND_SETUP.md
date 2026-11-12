@@ -1,4 +1,6 @@
-# Mediex — Express + Mongoose backend setup
+# Mediex — Legacy Express + Mongoose backend
+
+> This is a separate legacy backend and is **not used by the current TanStack Start website**. For the current full-stack Vercel deployment with MongoDB Atlas, follow [README.md](./README.md). Do not deploy this Express service as part of the current app.
 
 This adds a standalone **Node.js + Express + Mongoose** API in `server/`, plus
 React Query hooks in `src/hooks/mediexApi/` that call it from your existing

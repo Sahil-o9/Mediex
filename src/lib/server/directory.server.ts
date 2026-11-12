@@ -41,7 +41,10 @@ export type Failure = { ok: false; error: string; status?: number };
 /* ------------------------------------------------------------------ *
  * Bootstrapping
  * ------------------------------------------------------------------ */
-const gg = globalThis as unknown as { __mediexSeed?: Promise<void> | undefined };
+const gg = globalThis as unknown as {
+  __mediexSeed?: Promise<void> | undefined;
+  __mediexMongoSeed?: Promise<void> | undefined;
+};
 
 async function seedMemory(db: Db): Promise<void> {
   if (!claimMemorySeed()) return;
@@ -55,12 +58,47 @@ async function seedMemory(db: Db): Promise<void> {
   for (const r of seed.leaves) await db.table("doctor_leaves").insert(r);
 }
 
+async function seedMongo(db: Db): Promise<void> {
+  const now = new Date();
+  const seed = buildSeed(istNow(now).date, now.toISOString());
+
+  async function insertMissing<T extends { id: string }>(
+    table: { all(): Promise<T[]>; insert(row: T): Promise<T> },
+    rows: T[],
+  ): Promise<void> {
+    const existing = new Set((await table.all()).map((row) => row.id));
+    for (const row of rows) {
+      if (existing.has(row.id)) continue;
+      try {
+        await table.insert(row);
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw error;
+      }
+    }
+  }
+
+  await insertMissing(db.table("clinics"), seed.clinics);
+  await insertMissing(db.table("doctors"), seed.doctors);
+  await insertMissing(db.table("doctor_specializations"), seed.specializations);
+  await insertMissing(db.table("doctor_conditions"), seed.conditions);
+  await insertMissing(db.table("doctor_availability"), seed.availability);
+  await insertMissing(db.table("doctor_leaves"), seed.leaves);
+}
+
 /** The database handle every route uses. In memory (demo) mode it loads the labelled demo data once. */
 export async function getDirectoryDb(): Promise<Db> {
   const db = getDb();
   if (db.mode === "memory") {
     gg.__mediexSeed ??= seedMemory(db);
     await gg.__mediexSeed;
+  } else if (db.mode === "mongodb") {
+    gg.__mediexMongoSeed ??= seedMongo(db);
+    try {
+      await gg.__mediexMongoSeed;
+    } catch (error) {
+      gg.__mediexMongoSeed = undefined;
+      throw error;
+    }
   }
   return db;
 }
