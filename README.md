@@ -145,3 +145,7 @@ This project is available under the MIT License.
 ## Contributing
 
 Contributions are welcome. If you are improving the app, please keep changes focused, test locally, and document any new configuration or workflow updates.
+
+---
+
+Made by Sahil and Varun.
