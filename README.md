@@ -1,124 +1,168 @@
 # Mediex
 
-**Doctors can find patients. Patients deserve an easier way to find the right doctor.**
+A healthcare discovery and appointment-booking platform focused on helping patients find the right doctor faster and understand care options more clearly.
 
-Mediex is a healthcare discovery and appointment-booking prototype. It brings symptom-guided specialty suggestions, doctor search, location-aware results, and appointment booking into one patient flow, alongside a doctor portal.
+Mediex combines guided symptom-based recommendations, doctor discovery, appointment workflows, and multilingual patient/doctor interfaces into a single prototype application.
 
-## What you can explore
+## Overview
 
-- **Patient access:** create an account, sign in, and manage a basic profile.
-- **Doctor discovery:** describe a concern, get a specialty suggestion, and explore doctors by specialty and location.
-- **Appointments:** view available demo slots, book a visit, and follow its status.
-- **Doctor portal:** sign in to review and manage demo appointment activity.
-- **Reviews:** submit feedback after a completed demo visit.
-- **Health guidance:** explore general informational guidance and safety-oriented triage.
-- **English and Hindi:** switch the interface language from the landing page.
+This project is designed as a healthcare discovery experience for patients and doctors. It includes:
 
-## Built with
+- symptom-guided specialty recommendations
+- doctor search by specialty, location, and clinic context
+- appointment booking and tracking
+- doctor portal workflows for appointment review
+- multilingual support for English and Hindi
+- prototype health guidance and triage content
 
-TanStack Start, React, TypeScript, TanStack Router, Vite, Tailwind CSS, and Radix UI.
+## Architecture
 
-## Run locally
+- Frontend: React + TypeScript + Vite + TanStack Start
+- Routing: TanStack Router
+- Styling: Tailwind CSS + Radix UI
+- Backend: Express + Mongoose
+- Database: MongoDB (Atlas-ready)
+- Runtime: Node.js
 
-### Requirements
+## Tech Stack
+
+- React 19
+- TypeScript
+- Vite
+- TanStack Start
+- TanStack Router
+- Tailwind CSS
+- Radix UI
+- MongoDB
+- Express.js
+- Mongoose
+- Vitest
+
+## Repository Structure
+
+```text
+.
+├── src/                # Frontend application and routes
+├── server/             # Express backend and server logic
+├── public/             # Static assets
+├── scripts/            # Helper scripts and smoke tests
+├── .env.example        # Example environment file
+├── package.json        # Frontend scripts and dependencies
+├── README.md           # Project documentation
+└── LICENSE             # License
+```
+
+## Getting Started
+
+### Prerequisites
 
 - Node.js 22.12 or newer
 - npm
 
+### Install dependencies
+
 ```bash
 npm ci
+```
+
+### Run the app locally
+
+```bash
 npm run dev
 ```
 
-Open the local URL printed by Vite (usually `http://localhost:8080`).
+The development server will output the local URL (typically `http://localhost:8080`).
 
-### Demo accounts
-
-- **Patient:** register with a test phone number and password; OTP is simulated locally.
-- **Doctor:** `doctor001` / `Doctor@123`
-- **Admin:** `admin001` / `Admin@123`
-
-The doctor and admin credentials are shared demo accounts. Use them only for prototype walkthroughs.
-
-### Checks
+## Available Scripts
 
 ```bash
-npm test
+npm run dev
+npm run build
+npm run test
 npm run typecheck
 npm run lint
+npm run test:api
 ```
 
-For the API smoke test, start the development server with early appointment completion enabled:
+### API smoke test
+
+To run the API smoke test with early completion enabled:
 
 ```powershell
 $env:DEMO_EARLY_COMPLETE = "true"
 npm run dev
 ```
 
-Then, in another terminal:
+Then in another terminal:
 
 ```bash
 npm run test:api
 ```
 
-The smoke test creates temporary accounts; run it once per server start.
+## Demo Accounts
 
-## Deploy on Vercel with MongoDB Atlas
+Prototype walkthrough accounts are included for local demos:
 
-The TanStack Start app, including its `/api/*` routes, deploys as one Vercel application. MongoDB Atlas stores accounts, appointments, doctor directory data, cases, and consented original case files. The separate `server/` Express app is a legacy backend and is not used by the current frontend.
+- Patient: register with a test phone number and password; OTP is simulated locally
+- Doctor: `doctor001` / `Doctor@123`
+- Admin: `admin001` / `Admin@123`
 
-### Prepare MongoDB Atlas
+Use these only for prototype demonstrations and local testing.
 
-1. Create an Atlas project and cluster.
-2. Create a database user with a strong password. URL-encode special characters in the password when building the connection string.
-3. Configure the cluster network access list. Vercel serverless functions do not have a single fixed outbound IP on all plans; for a hackathon demo, Atlas may need `0.0.0.0/0`. Use a strong database password and restrict access further if your Vercel plan supports static egress.
-4. Copy the cluster connection string. Keep it private; it is a server-side credential.
+## Environment Configuration
 
-### Configure Vercel
+### Local development
 
+<<<<<<< HEAD
 1. Push the project to GitHub and import that repository into Vercel. Set the project root to the repository root.
 2. Use Node.js 22 or newer. The build command is `npm run build`; Nitro's Vercel preset produces the deployment output.
 3. Add these environment variables in **Project Settings → Environment Variables** for Production (and Preview if needed). Add only the listed values; do not import the local `.env` wholesale. In particular, do not set `NODE_ENV=development` in Vercel—Vercel sets the correct production mode for production deployments.
+=======
+Copy the environment file if present and configure your local settings before running the app.
+>>>>>>> 2e8c9658bca21142deb4930ec681057147146067
 
-   | Variable | Value |
-   | --- | --- |
-   | `DATA_ADAPTER` | `mongodb` |
-   | `MONGODB_URI` | Atlas connection string |
-   | `MONGODB_DB` | `mediex` |
-   | `SESSION_SECRET` | A unique random secret |
-   | `ALLOW_DEMO_ACCOUNTS` | `true` for the hackathon walkthrough; set to `false` afterward |
+### Production / Vercel deployment
 
-4. Generate `SESSION_SECRET` locally and paste it into Vercel. Do not commit it or share it:
+Set the following environment variables in your deployment platform:
 
-   ```powershell
-   node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-   ```
+| Variable | Purpose |
+| --- | --- |
+| `DATA_ADAPTER` | Set to `mongodb` for persistent storage |
+| `MONGODB_URI` | MongoDB Atlas connection string |
+| `MONGODB_DB` | Database name, e.g. `mediex` |
+| `SESSION_SECRET` | Secure secret used for session management |
+| `ALLOW_DEMO_ACCOUNTS` | Enables demo accounts for walkthroughs |
 
-5. Redeploy after adding the variables. Open the Vercel deployment URL and test patient registration/sign-in, doctor discovery, appointment booking, and the doctor portal.
-
-Vercel handles the app's same-origin API routes, so a separate Render service is not required for this setup.
-
-### Run locally with Atlas
-
-Copy `.env.example` to `.env`, add your Atlas URI and a private local session secret, then run:
+Generate a session secret locally:
 
 ```powershell
-npm ci
-npm run dev
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-`.env` is ignored by Git. MongoDB collections and the demo doctor directory are created/seeded automatically on first use.
+## Deployment
 
-## Prototype implementation notes
+This app is structured to deploy as a Vercel application with MongoDB Atlas for persistence. The frontend and API routes can run within the same application deployment, which keeps the setup simple for prototype and demo environments.
 
-- The directory is seeded with example doctors and clinic details; treat those listings as sample content.
-- With `DATA_ADAPTER=mongodb`, accounts and appointments persist in MongoDB Atlas and are shared between Vercel function instances. Without a MongoDB URI, local development uses in-memory sample storage.
-- Phone OTP is simulated; no SMS is sent.
-- Hospital and report-analysis areas include sample/incomplete flows. Health guidance is informational and is not a diagnosis.
-- The MongoDB database stores submitted case details and any original files the patient explicitly consents to share. Use demo data for presentations; this prototype is not a certified healthcare data system.
+## Development Notes
 
-These are current prototype boundaries, not claims about a production healthcare service.
+- Seeded doctor and clinic data are sample content for demo use
+- MongoDB-backed persistence is enabled when configured; otherwise local development may rely on in-memory sample data
+- OTP flows are simulated and do not send real SMS messages
+- Health guidance and some hospital/report-analysis flows are informational only and are not clinical diagnosis tools
+- Submitted case details and any consented original files are stored in the database for demo/prototype use
+
+## Prototype Boundaries
+
+This project is a prototype and not a certified healthcare system or production medical platform. It is intended for demonstration, exploration, and product validation workflows.
 
 ## License
 
 This project is available under the MIT License.
+
+## Contributing
+
+Contributions are welcome. Please keep changes focused, validate them locally, and update docs when adding or modifying configuration or workflows.
+
+---
+
+Made by Sahil and Varun.
