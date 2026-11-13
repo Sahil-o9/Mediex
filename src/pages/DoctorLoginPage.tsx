@@ -73,7 +73,7 @@ export default function DoctorLoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-300">
-                  {t.doctorLogin.doctorId}
+                  Doctor ID or email
                 </label>
                 <div className="flex items-center gap-3 rounded-2xl border-2 border-slate-700 bg-slate-850 px-4 py-3.5 transition-colors focus-within:border-medical-500 focus-within:ring-2 focus-within:ring-medical-500/20">
                   <Stethoscope size={20} className="text-slate-500" />

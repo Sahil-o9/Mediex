@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { isValidLatLng } from "@/lib/mediex/geo";
 import { body, bool, fail, num } from "@/lib/server/api.server";
+import { normalizePhone } from "@/lib/server/accounts.server";
 import { requireDoctor } from "@/lib/server/auth.server";
 import {
   getDirectoryDb,
@@ -50,6 +51,11 @@ export const Route = createFileRoute("/api/doctor/profile")({
 
         const input: ProfileInput = {};
         if ("fullName" in b) input.fullName = str(b["fullName"], 100);
+        if ("phone" in b) {
+          const rawPhone = str(b["phone"], 32);
+          if (!normalizePhone(rawPhone)) return fail("invalid_phone");
+          input.phone = rawPhone;
+        }
         if ("qualifications" in b) input.qualifications = str(b["qualifications"], 200);
         if ("registrationNumber" in b) input.registrationNumber = str(b["registrationNumber"], 40);
         if ("registrationCouncil" in b)

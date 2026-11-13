@@ -83,6 +83,7 @@ export interface DoctorRow extends Row {
   handle: string;
   fullName: string;
   email: string;
+  phone?: string;
   qualifications: string;
   registrationNumber: string;
   registrationCouncil: string;

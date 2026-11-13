@@ -332,6 +332,7 @@ const email = `newdoc${Date.now()}@example.com`;
 r = await call("nd", "POST", "/api/auth/doctor", {
   action: "register",
   fullName: "Dr. New Doctor",
+  phone: "9876543210",
   email,
   password: "Passw0rdOK",
   qualifications: "MBBS",
@@ -343,6 +344,26 @@ check(
   r.status === 201 && r.json.verificationStatus === "pending",
   JSON.stringify(r.json),
 );
+const doctorHandle = r.json.doctor?.doctorId;
+check("registration returns the generated doctor ID", /^DR-\d{6}$/.test(doctorHandle ?? ""));
+r = await call("nd", "GET", "/api/doctor/profile");
+check(
+  "doctor can read their private contact details",
+  r.status === 200 &&
+    r.json.private.phone === "9876543210" &&
+    r.json.private.handle === doctorHandle,
+);
+r = await call("nd-login", "POST", "/api/auth/doctor", {
+  action: "login",
+  doctorId: doctorHandle,
+  password: "Passw0rdOK",
+});
+check("new doctor can log in with generated ID and password", r.status === 200);
+r = await call("nd-login", "GET", "/api/auth/session");
+check(
+  "session identifies registered doctor by their generated ID",
+  r.json.doctor?.doctorId === doctorHandle,
+);
 r = await call("nd", "GET", "/api/cases");
 check("self-registered doctor cannot read legacy cases → 403", r.status === 403);
 r = await call("nd", "PUT", "/api/doctor/profile", { acceptingAppointments: true });
@@ -351,9 +372,13 @@ check(
   r.status === 400 && String(r.json.error).startsWith("profile_incomplete"),
 );
 r = await call("nd", "PUT", "/api/doctor/profile", {
+  phone: "9876543211",
+  qualifications: "MBBS",
   specialties: ["ent", "general_medicine"],
   conditions: ["ear pain", "sore throat"],
   languages: ["English", "Hindi"],
+  experienceYears: 5,
+  consultationFee: 650,
   clinic: {
     name: "New ENT Clinic",
     kind: "clinic",
@@ -366,7 +391,18 @@ r = await call("nd", "PUT", "/api/doctor/profile", {
     phone: "",
   },
 });
-check("save profile + clinic", r.status === 200 && r.json.profile.clinic.name === "New ENT Clinic");
+check(
+  "save profile, contact, experience, fee, and clinic",
+  r.status === 200 &&
+    r.json.profile.clinic.name === "New ENT Clinic" &&
+    r.json.profile.experienceYears === 5 &&
+    r.json.profile.consultationFee === 650,
+);
+r = await call("nd", "GET", "/api/doctor/profile");
+check(
+  "doctor profile update persists contact number",
+  r.status === 200 && r.json.private.phone === "9876543211",
+);
 r = await call("a", "GET", "/api/admin/hospitals");
 const clinicRow = r.json.hospitals.find((hospital) => hospital.name === "New ENT Clinic");
 check("new clinic is pending hospital review", clinicRow?.status === "pending");

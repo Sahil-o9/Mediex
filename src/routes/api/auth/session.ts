@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authConfigured, clearedCookie, getSession } from "@/lib/server/auth.server";
 import { publicPatient } from "@/lib/server/api.server";
-import { getDirectoryDb, loadProfile } from "@/lib/server/directory.server";
+import { getDirectoryDb, getDoctorPrivate, loadProfile } from "@/lib/server/directory.server";
 import { guard, json } from "@/lib/server/guards.server";
 import { otpMode } from "@/lib/server/accounts.server";
 import { demoAccountsAllowed } from "@/lib/server/env.server";
@@ -31,9 +31,15 @@ export const Route = createFileRoute("/api/auth/session")({
         }
         if (s.role === "doctor") {
           const profile = s.pid ? await loadProfile(db, s.pid) : null;
+          const privateProfile = s.pid ? await getDoctorPrivate(db, s.pid) : null;
           return json({
             role: "doctor",
-            doctor: { doctorId: s.sub, name: s.name, profileId: s.pid, staff: s.staff },
+            doctor: {
+              doctorId: privateProfile?.handle ?? s.sub,
+              name: profile?.fullName ?? s.name,
+              profileId: s.pid,
+              staff: s.staff,
+            },
             verificationStatus: profile?.verificationStatus ?? "unverified",
             ...config,
           });

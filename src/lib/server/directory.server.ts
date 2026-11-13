@@ -22,7 +22,7 @@ import {
   type PublicReview,
   type SpecialtyId,
 } from "@/types/directory";
-import { newId } from "./accounts.server";
+import { newId, normalizePhone } from "./accounts.server";
 import {
   claimMemorySeed,
   getDb,
@@ -236,6 +236,7 @@ export async function getDoctorPrivate(
   registrationCouncil: string;
   email: string;
   handle: string;
+  phone: string;
 } | null> {
   const d = await db.table("doctors").get(doctorId);
   return d
@@ -244,6 +245,7 @@ export async function getDoctorPrivate(
         registrationCouncil: d.registrationCouncil,
         email: d.email,
         handle: d.handle,
+        phone: d.phone ?? "",
       }
     : null;
 }
@@ -351,6 +353,7 @@ export interface ClinicInput {
 
 export interface ProfileInput {
   fullName?: string;
+  phone?: string;
   qualifications?: string;
   registrationNumber?: string;
   registrationCouncil?: string;
@@ -377,6 +380,11 @@ export async function saveDoctorProfile(
   if (input.fullName !== undefined) {
     if (input.fullName.trim().length < 3) return { ok: false, error: "invalid_name" };
     patch.fullName = input.fullName.trim();
+  }
+  if (input.phone !== undefined) {
+    const phone = normalizePhone(input.phone);
+    if (!phone) return { ok: false, error: "invalid_phone" };
+    patch.phone = phone;
   }
   if (input.qualifications !== undefined) patch.qualifications = input.qualifications.trim();
   if (input.experienceYears !== undefined) patch.experienceYears = input.experienceYears;

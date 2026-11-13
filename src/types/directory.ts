@@ -166,6 +166,7 @@ export interface DoctorProfile {
 export interface DoctorPrivateFields {
   registrationNumber: string;
   registrationCouncil: string;
+  phone: string;
 }
 
 export interface Slot {

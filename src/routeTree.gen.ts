@@ -19,6 +19,7 @@ import { Route as ApiReviewsRouteImport } from './routes/api/reviews'
 import { Route as ApiTriageRouteImport } from './routes/api/triage'
 import { Route as DoctorDashboardRouteImport } from './routes/doctor/dashboard'
 import { Route as DoctorLoginRouteImport } from './routes/doctor/login'
+import { Route as DoctorRegisterRouteImport } from './routes/doctor/register'
 import { Route as PatientAppointmentsRouteImport } from './routes/patient/appointments'
 import { Route as PatientAssistantRouteImport } from './routes/patient/assistant'
 import { Route as PatientAuthRouteImport } from './routes/patient/auth'
@@ -95,6 +96,11 @@ const DoctorDashboardRoute = DoctorDashboardRouteImport.update({
 const DoctorLoginRoute = DoctorLoginRouteImport.update({
   id: '/doctor/login',
   path: '/doctor/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DoctorRegisterRoute = DoctorRegisterRouteImport.update({
+  id: '/doctor/register',
+  path: '/doctor/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientAppointmentsRoute = PatientAppointmentsRouteImport.update({
@@ -246,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/api/triage': typeof ApiTriageRoute
   '/doctor/dashboard': typeof DoctorDashboardRoute
   '/doctor/login': typeof DoctorLoginRoute
+  '/doctor/register': typeof DoctorRegisterRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/assistant': typeof PatientAssistantRoute
   '/patient/auth': typeof PatientAuthRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByTo {
   '/api/triage': typeof ApiTriageRoute
   '/doctor/dashboard': typeof DoctorDashboardRoute
   '/doctor/login': typeof DoctorLoginRoute
+  '/doctor/register': typeof DoctorRegisterRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/assistant': typeof PatientAssistantRoute
   '/patient/auth': typeof PatientAuthRoute
@@ -325,6 +333,7 @@ export interface FileRoutesById {
   '/api/triage': typeof ApiTriageRoute
   '/doctor/dashboard': typeof DoctorDashboardRoute
   '/doctor/login': typeof DoctorLoginRoute
+  '/doctor/register': typeof DoctorRegisterRoute
   '/patient/appointments': typeof PatientAppointmentsRoute
   '/patient/assistant': typeof PatientAssistantRoute
   '/patient/auth': typeof PatientAuthRoute
@@ -366,6 +375,7 @@ export interface FileRouteTypes {
     | '/api/triage'
     | '/doctor/dashboard'
     | '/doctor/login'
+    | '/doctor/register'
     | '/patient/appointments'
     | '/patient/assistant'
     | '/patient/auth'
@@ -405,6 +415,7 @@ export interface FileRouteTypes {
     | '/api/triage'
     | '/doctor/dashboard'
     | '/doctor/login'
+    | '/doctor/register'
     | '/patient/appointments'
     | '/patient/assistant'
     | '/patient/auth'
@@ -444,6 +455,7 @@ export interface FileRouteTypes {
     | '/api/triage'
     | '/doctor/dashboard'
     | '/doctor/login'
+    | '/doctor/register'
     | '/patient/appointments'
     | '/patient/assistant'
     | '/patient/auth'
@@ -484,6 +496,7 @@ export interface RootRouteChildren {
   ApiTriageRoute: typeof ApiTriageRoute
   DoctorDashboardRoute: typeof DoctorDashboardRoute
   DoctorLoginRoute: typeof DoctorLoginRoute
+  DoctorRegisterRoute: typeof DoctorRegisterRoute
   PatientAppointmentsRoute: typeof PatientAppointmentsRoute
   PatientAssistantRoute: typeof PatientAssistantRoute
   PatientAuthRoute: typeof PatientAuthRoute
@@ -583,6 +596,13 @@ declare module '@tanstack/react-router' {
       path: '/doctor/login'
       fullPath: '/doctor/login'
       preLoaderRoute: typeof DoctorLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/doctor/register': {
+      id: '/doctor/register'
+      path: '/doctor/register'
+      fullPath: '/doctor/register'
+      preLoaderRoute: typeof DoctorRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patient/appointments': {
@@ -788,6 +808,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTriageRoute: ApiTriageRoute,
   DoctorDashboardRoute: DoctorDashboardRoute,
   DoctorLoginRoute: DoctorLoginRoute,
+  DoctorRegisterRoute: DoctorRegisterRoute,
   PatientAppointmentsRoute: PatientAppointmentsRoute,
   PatientAssistantRoute: PatientAssistantRoute,
   PatientAuthRoute: PatientAuthRoute,

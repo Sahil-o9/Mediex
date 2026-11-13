@@ -28,6 +28,8 @@ export interface AuthResult {
   error?: string;
   /** Set on successful patient registration. */
   patientId?: string;
+  /** Generated doctor handle (DR-xxxxxx) returned on successful registration. */
+  doctorId?: string;
 }
 
 interface RegisterPatientInput {
@@ -59,6 +61,7 @@ interface AuthContextValue {
   ) => Promise<AuthResult & { role?: "doctor" | "admin" | undefined }>;
   registerDoctor: (input: {
     fullName: string;
+    phone: string;
     email: string;
     password: string;
     qualifications: string;
@@ -171,13 +174,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerDoctor = useCallback(
     async (input: Parameters<AuthContextValue["registerDoctor"]>[0]): Promise<AuthResult> => {
-      const r = await apiFetch("/api/auth/doctor", {
+      const r = await apiFetch<{ doctor: { doctorId: string } }>("/api/auth/doctor", {
         method: "POST",
         body: { action: "register", ...input },
       });
       if (!r.ok) return { success: false, error: r.error ?? "unknown" };
       await refresh();
-      return { success: true };
+      return {
+        success: true,
+        ...(r.data?.doctor.doctorId ? { doctorId: r.data.doctor.doctorId } : {}),
+      };
     },
     [refresh],
   );

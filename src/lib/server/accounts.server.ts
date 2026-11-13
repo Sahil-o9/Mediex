@@ -143,6 +143,7 @@ export async function loginPatient(
  * ------------------------------------------------------------------ */
 export interface DoctorSignupInput {
   fullName: string;
+  phone: string;
   email: string;
   password: string;
   qualifications: string;
@@ -155,6 +156,8 @@ export async function registerDoctor(
   input: DoctorSignupInput,
 ): Promise<Ok<{ doctor: DoctorRow; accountId: string }> | Failure> {
   if (input.fullName.trim().length < 3) return { ok: false, error: "invalid_name" };
+  const phone = normalizePhone(input.phone);
+  if (!phone) return { ok: false, error: "invalid_phone" };
   const email = normalizeEmail(input.email);
   if (!email) return { ok: false, error: "invalid_email" };
   const pw = passwordProblem(input.password);
@@ -175,6 +178,7 @@ export async function registerDoctor(
     handle,
     fullName: input.fullName.trim().slice(0, 100),
     email,
+    phone,
     qualifications: input.qualifications.trim().slice(0, 200),
     registrationNumber: input.registrationNumber.trim(),
     registrationCouncil: input.registrationCouncil.trim().slice(0, 120),

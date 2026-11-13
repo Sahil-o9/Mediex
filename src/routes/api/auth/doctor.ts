@@ -44,6 +44,7 @@ export const Route = createFileRoute("/api/auth/doctor")({
         if (b["action"] === "register") {
           const r = await registerDoctor(db, {
             fullName: str(b["fullName"], 100),
+            phone: str(b["phone"], 32),
             email: str(b["email"], 120),
             password,
             qualifications: str(b["qualifications"], 200),
