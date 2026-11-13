@@ -85,13 +85,20 @@ check(
 console.log("access control (anonymous)");
 for (const [m, p] of [
   ["GET", "/api/appointments"],
+  ["GET", "/api/patient/profile"],
   ["GET", "/api/doctor/profile"],
   ["GET", "/api/admin/doctors"],
+  ["GET", "/api/admin/hospitals"],
   ["GET", "/api/cases"],
 ]) {
   r = await call("anon", m, p);
   check(`${m} ${p} → 401`, r.status === 401, String(r.status));
 }
+r = await call("anon", "GET", "/api/hospitals");
+check(
+  "public hospital directory hides sample/unverified clinics",
+  r.status === 200 && r.json.total === 0 && r.json.hospitals.length === 0,
+);
 
 console.log("patient auth");
 const P1 = phone();
@@ -124,6 +131,29 @@ check(
   "register ok + no password in response",
   r.status === 201 && !JSON.stringify(r.json).toLowerCase().includes("password"),
 );
+r = await call("p1", "GET", "/api/patient/profile");
+check(
+  "patient can read own server profile",
+  r.status === 200 && r.json.patient.fullName === "Test Patient",
+);
+r = await call("p1", "PUT", "/api/patient/profile", {
+  email: "patient@example.com",
+  bloodGroup: "O+",
+  emergencyContact: "9876543210",
+  abhaId: "ABHA-1234",
+});
+check(
+  "profile update persists validated private fields",
+  r.status === 200 &&
+    r.json.patient.fullName === "Test Patient" &&
+    r.json.patient.bloodGroup === "O+" &&
+    r.json.patient.emergencyContact === "9876543210" &&
+    r.json.patient.abhaId === "ABHA-1234",
+);
+r = await call("p1", "PUT", "/api/patient/profile", { dateOfBirth: "2999-01-01" });
+check("future date of birth rejected", r.status === 400 && r.json.error === "invalid_dob");
+r = await call("p1", "PUT", "/api/patient/profile", { emergencyContact: "not-a-phone" });
+check("invalid emergency contact rejected", r.status === 400);
 r = await call("p1x", "POST", "/api/auth/patient", {
   action: "register",
   fullName: "Dup",
@@ -166,7 +196,11 @@ r = await call("p1", "POST", "/api/appointments", {
   reason: "fever",
   shareSummary: "Patient reports fever for 2 days (not a diagnosis).",
 });
-check("book slot", r.status === 201, JSON.stringify(r.json));
+check(
+  "book slot without exposing internal lock key",
+  r.status === 201 && !("activeSlotKey" in r.json.appointment),
+  JSON.stringify(r.json),
+);
 const apptId = r.json.appointment?.id;
 const P2 = phone();
 await call("p2", "POST", "/api/auth/patient", {
@@ -333,6 +367,26 @@ r = await call("nd", "PUT", "/api/doctor/profile", {
   },
 });
 check("save profile + clinic", r.status === 200 && r.json.profile.clinic.name === "New ENT Clinic");
+r = await call("a", "GET", "/api/admin/hospitals");
+const clinicRow = r.json.hospitals.find((hospital) => hospital.name === "New ENT Clinic");
+check("new clinic is pending hospital review", clinicRow?.status === "pending");
+r = await call("anon", "GET", "/api/hospitals?q=New%20ENT");
+check("pending clinic is not public", r.status === 200 && r.json.total === 0);
+r = await call("a", "PATCH", "/api/admin/hospitals", {
+  id: clinicRow?.id,
+  decision: "verify",
+});
+check("admin verifies clinic listing", r.status === 200);
+r = await call("anon", "GET", "/api/hospitals?q=New%20ENT&specialty=ent");
+check(
+  "verified clinic is publicly searchable with associated doctors",
+  r.status === 200 &&
+    r.json.total === 1 &&
+    r.json.hospitals[0].name === "New ENT Clinic" &&
+    r.json.hospitals[0].doctors[0].fullName === "Dr. New Doctor",
+);
+r = await call("anon", "GET", `/api/hospitals/${clinicRow?.id}`);
+check("verified clinic detail endpoint", r.status === 200 && r.json.hospital.id === clinicRow?.id);
 r = await call("nd", "PUT", "/api/doctor/schedule", {
   availability: [
     { weekday: 1, startTime: "10:00", endTime: "12:00" },

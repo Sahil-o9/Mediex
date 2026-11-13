@@ -6,6 +6,7 @@ import PatientShell from "@/components/PatientShell";
 import { RequirePatient } from "@/components/RequirePatient";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "@/lib/router";
+import { apiFetch } from "@/lib/mediex/http";
 import type { Patient } from "@/types";
 
 export const Route = createFileRoute("/patient/profile")({
@@ -47,14 +48,16 @@ function Profile({ patient }: { patient: Patient }) {
   });
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const set = (key: keyof typeof form, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));
     setSaved(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError("");
+    setSaved(false);
     if (form.fullName.trim().length < 3) return setError("Please enter your full name.");
     if (!/^\d{10}$/.test(form.mobileNumber.trim()))
       return setError("Mobile number must be exactly 10 digits.");
@@ -63,17 +66,34 @@ function Profile({ patient }: { patient: Patient }) {
     if (form.emergencyContact && !/^\d{10}$/.test(form.emergencyContact.trim()))
       return setError("Emergency contact must be a 10-digit mobile number.");
 
-    updatePatient({
-      fullName: form.fullName.trim(),
-      dateOfBirth: form.dateOfBirth,
-      gender: form.gender,
-      mobileNumber: form.mobileNumber.trim(),
-      email: form.email.trim() || undefined,
-      abhaId: form.abhaId.trim() || undefined,
-      bloodGroup: form.bloodGroup || undefined,
-      emergencyContact: form.emergencyContact.trim() || undefined,
-      language: form.language as "hi" | "en",
+    setSaving(true);
+    const result = await apiFetch<{ patient: Patient }>("/api/patient/profile", {
+      method: "PUT",
+      body: {
+        fullName: form.fullName.trim(),
+        dateOfBirth: form.dateOfBirth,
+        gender: form.gender,
+        email: form.email.trim(),
+        abhaId: form.abhaId.trim(),
+        bloodGroup: form.bloodGroup,
+        emergencyContact: form.emergencyContact.trim(),
+        language: form.language,
+      },
     });
+    setSaving(false);
+    if (!result.ok || !result.data?.patient) {
+      setError(
+        result.error === "invalid_dob"
+          ? "Please enter a valid date of birth."
+          : result.error === "invalid_abha_id"
+            ? "Please enter a valid ABHA ID."
+            : result.error === "invalid_emergency_contact"
+              ? "Emergency contact must be a valid Indian mobile number."
+              : "Could not save your profile. Please try again.",
+      );
+      return;
+    }
+    updatePatient(result.data.patient);
     setSaved(true);
   };
 
@@ -114,7 +134,8 @@ function Profile({ patient }: { patient: Patient }) {
           </dl>
           <p className="mt-5 flex items-start gap-2 rounded-2xl bg-white/15 px-3 py-2.5 text-xs text-medical-50">
             <ShieldCheck size={15} className="mt-0.5 shrink-0" />
-            Your details stay on this device in this demo build and are never shared.
+            Your profile is private to your account. Booking shares only the details shown in the
+            booking flow.
           </p>
           <button
             onClick={() => {
@@ -167,9 +188,13 @@ function Profile({ patient }: { patient: Patient }) {
                 inputMode="numeric"
                 maxLength={10}
                 value={form.mobileNumber}
-                onChange={(e) => set("mobileNumber", e.target.value.replace(/\D/g, ""))}
+                disabled
+                aria-describedby="mobile-number-note"
                 className={field}
               />
+              <span id="mobile-number-note" className="mt-1 block text-[11px] text-slate-500">
+                This is your sign-in number and cannot be changed here.
+              </span>
             </label>
             <label className="block">
               <span className={label}>Email (optional)</span>
@@ -227,6 +252,7 @@ function Profile({ patient }: { patient: Patient }) {
               >
                 <option value="en">English</option>
                 <option value="hi">हिंदी (Hindi)</option>
+                <option value="hinglish">Hinglish</option>
               </select>
             </label>
           </div>
@@ -244,11 +270,12 @@ function Profile({ patient }: { patient: Patient }) {
           )}
 
           <button
-            onClick={handleSave}
+            onClick={() => void handleSave()}
+            disabled={saving}
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-medical-600 py-3 text-sm font-semibold text-white shadow-sm shadow-medical-500/30 transition hover:bg-medical-700"
           >
             <Save size={16} />
-            Save changes
+            {saving ? "Saving…" : "Save changes"}
           </button>
         </section>
       </div>

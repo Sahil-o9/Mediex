@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Siren, Phone, MapPin, HeartPulse, ShieldAlert, UserRound } from "lucide-react";
 import PatientShell from "@/components/PatientShell";
 import { RequirePatient } from "@/components/RequirePatient";
-import { emergencyContacts, hospitals } from "@/lib/mediex/data";
+import { emergencyContacts } from "@/lib/mediex/data";
+import { apiFetch } from "@/lib/mediex/http";
+import type { HospitalDirectoryEntry } from "@/types/directory";
 import type { Patient } from "@/types";
 
 export const Route = createFileRoute("/patient/emergency")({
@@ -13,12 +16,12 @@ export const Route = createFileRoute("/patient/emergency")({
       {
         name: "description",
         content:
-          "One-tap emergency helplines, your emergency contact, nearest 24x7 hospitals and simple first-response steps while help arrives.",
+          "One-tap emergency helplines, your emergency contact, verified hospital listings and simple first-response steps while help arrives.",
       },
       { property: "og:title", content: "Emergency Help & Helplines | Mediex" },
       {
         property: "og:description",
-        content: "Helplines, emergency contact and nearest 24x7 hospitals.",
+        content: "Helplines, emergency contact and verified hospital listings.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -35,14 +38,30 @@ const firstSteps = [
 ];
 
 function Emergency({ patient }: { patient: Patient }) {
-  const nearest24x7 = hospitals
-    .filter((h) => h.status === "Open 24x7")
-    .sort((a, b) => a.distanceKm - b.distanceKm);
+  const [hospitals, setHospitals] = useState<HospitalDirectoryEntry[]>([]);
+  const [hospitalsError, setHospitalsError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void apiFetch<{ hospitals: HospitalDirectoryEntry[] }>(
+      "/api/hospitals?page=1&pageSize=20",
+    ).then((result) => {
+      if (!active) return;
+      if (!result.ok || !result.data) {
+        setHospitalsError(true);
+        return;
+      }
+      setHospitals(result.data.hospitals);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <PatientShell
       title="Emergency Assistance"
-      subtitle="Fast access to helplines, your contact person and 24x7 hospitals"
+      subtitle="Fast access to emergency services, your contact person and verified care listings"
     >
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -139,30 +158,56 @@ function Emergency({ patient }: { patient: Patient }) {
         <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 md:p-6">
           <h3 className="flex items-center gap-2 text-base font-bold text-slate-800">
             <MapPin size={18} className="text-medical-600" />
-            Nearest 24x7 hospitals
+            Verified hospitals and clinics
           </h3>
-          <ul className="mt-4 space-y-3">
-            {nearest24x7.map((h) => (
-              <li
-                key={h.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-700">{h.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {h.address}, {h.city} · {h.distanceKm} km
-                  </p>
-                </div>
-                <a
-                  href={`tel:${h.phone.replace(/\s/g, "")}`}
-                  className="flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700"
-                >
-                  <Phone size={13} />
-                  Call
-                </a>
-              </li>
-            ))}
-          </ul>
+          {hospitalsError ? (
+            <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">
+              Verified hospital listings are unavailable right now. For an emergency in India, call
+              112.
+            </p>
+          ) : hospitals.length === 0 ? (
+            <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">
+              No verified hospitals are currently listed. For an emergency in India, call 112.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {hospitals.map((h) => {
+                const destination = `${h.addressLine}, ${h.city}, ${h.state}, ${h.pincode}`;
+                return (
+                  <li
+                    key={h.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-700">{h.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {h.addressLine}, {h.city}, {h.state}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full bg-medical-50 px-3 py-1.5 text-xs font-semibold text-medical-700"
+                      >
+                        Directions
+                      </a>
+                      {h.phone && (
+                        <a
+                          href={`tel:${h.phone.replace(/[^\d+]/g, "")}`}
+                          className="flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700"
+                        >
+                          <Phone size={13} />
+                          Call
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
       </div>
 

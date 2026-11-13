@@ -1,292 +1,192 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   CalendarCheck,
   CalendarClock,
   Clock,
-  Hospital as HospitalIcon,
+  Hospital,
+  Loader2,
+  MapPin,
   Stethoscope,
   Trash2,
-  CheckCircle2,
 } from "lucide-react";
 import PatientShell from "@/components/PatientShell";
 import { RequirePatient } from "@/components/RequirePatient";
-import { hospitals } from "@/lib/mediex/data";
-import { getAppointments, saveAppointment, cancelAppointment, newId } from "@/lib/mediex/storage";
-import type { Appointment, Patient } from "@/types";
+import { apiFetch, errorText } from "@/lib/mediex/http";
+import type { PatientAppointmentView } from "@/types/directory";
 
 export const Route = createFileRoute("/patient/appointments")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    hospital: typeof search["hospital"] === "string" ? search["hospital"] : undefined,
-    doctor: typeof search["doctor"] === "string" ? search["doctor"] : undefined,
-  }),
   head: () => ({
     meta: [
-      { title: "Book & Manage Appointments | Mediex" },
+      { title: "My Appointments | Mediex" },
       {
         name: "description",
-        content:
-          "Book a consultation with a doctor at a nearby hospital, pick a time slot, and review or cancel your upcoming Mediex appointments.",
+        content: "Review and manage appointments booked with Mediex doctors.",
       },
-      { property: "og:title", content: "Book & Manage Appointments | Mediex" },
-      {
-        property: "og:description",
-        content: "Pick a hospital, doctor and time slot, then manage your bookings.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: () => (
-    <RequirePatient>{(patient) => <Appointments patient={patient} />}</RequirePatient>
-  ),
+  component: () => <RequirePatient>{() => <Appointments />}</RequirePatient>,
 });
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
+function statusLabel(status: PatientAppointmentView["status"]): string {
+  return status.replace("_", " ");
 }
 
-function Appointments({ patient }: { patient: Patient }) {
-  const search = useSearch({ from: "/patient/appointments" });
-  const [hospitalId, setHospitalId] = useState(search["hospital"] ?? hospitals[0]!.id);
-  const [doctorId, setDoctorId] = useState(search["doctor"] ?? hospitals[0]!.doctors[0]!.id);
-  const [date, setDate] = useState(today());
-  const [time, setTime] = useState("");
-  const [reason, setReason] = useState("");
+function Appointments() {
+  const [appointments, setAppointments] = useState<PatientAppointmentView[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [confirmed, setConfirmed] = useState<Appointment | null>(null);
-  const [list, setList] = useState<Appointment[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    setList(getAppointments(patient.patientId));
-  }, [patient.patientId]);
-
-  const hospital = useMemo(
-    () => hospitals.find((h) => h.id === hospitalId) ?? hospitals[0]!,
-    [hospitalId],
-  );
-  const doctor = useMemo(
-    () => hospital.doctors.find((d) => d.id === doctorId) ?? hospital.doctors[0]!,
-    [hospital, doctorId],
-  );
-
-  useEffect(() => {
-    if (!hospital.doctors.some((d) => d.id === doctorId)) {
-      setDoctorId(hospital.doctors[0]!.id);
-    }
-    setTime("");
-  }, [hospital, doctorId]);
-
-  const handleBook = () => {
+    let active = true;
+    setLoading(true);
     setError("");
-    if (!date) return setError("Please choose a date for your visit.");
-    if (date < today()) return setError("Please choose today or a future date.");
-    if (!time) return setError("Please select an available time slot.");
-
-    const appointment: Appointment = {
-      id: newId("APT"),
-      patientId: patient.patientId,
-      patientName: patient.fullName,
-      contact: patient.mobileNumber,
-      hospitalName: hospital.name,
-      doctorName: doctor.name,
-      specialty: doctor.specialty,
-      date,
-      time,
-      reason: reason.trim() || undefined,
-      createdAt: new Date().toISOString(),
+    void apiFetch<{ appointments: PatientAppointmentView[] }>("/api/appointments").then(
+      (result) => {
+        if (!active) return;
+        if (!result.ok || !result.data) {
+          setError(errorText(result.error));
+          setAppointments([]);
+        } else {
+          setAppointments(result.data.appointments);
+        }
+        setLoading(false);
+      },
+    );
+    return () => {
+      active = false;
     };
-    saveAppointment(appointment);
-    setList(getAppointments(patient.patientId));
-    setConfirmed(appointment);
-    setReason("");
-    setTime("");
-  };
+  }, [reload]);
 
-  const handleCancel = (id: string) => {
-    cancelAppointment(id);
-    setList(getAppointments(patient.patientId));
-    if (confirmed?.id === id) setConfirmed(null);
-  };
+  async function cancel(id: string) {
+    setBusyId(id);
+    setError("");
+    const result = await apiFetch("/api/appointments", {
+      method: "PATCH",
+      body: { id, status: "cancelled" },
+    });
+    setBusyId(null);
+    if (!result.ok) {
+      setError(errorText(result.error));
+      return;
+    }
+    setReload((value) => value + 1);
+  }
 
   return (
-    <PatientShell title="Appointments" subtitle="Book a consultation and keep track of your visits">
-      <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 md:p-6">
+    <PatientShell title="Appointments" subtitle="Review and manage your booked consultations">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70">
+        <div>
           <h2 className="flex items-center gap-2 text-base font-bold text-slate-800">
             <CalendarCheck size={18} className="text-medical-600" />
-            Book a new appointment
+            Your appointments
           </h2>
-
-          <div className="mt-5 space-y-4">
-            <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Hospital
-              </span>
-              <select
-                value={hospitalId}
-                onChange={(e) => setHospitalId(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-medical-400 focus:bg-white"
-              >
-                {hospitals.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name} — {h.city}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Doctor
-              </span>
-              <select
-                value={doctor.id}
-                onChange={(e) => setDoctorId(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-medical-400 focus:bg-white"
-              >
-                {hospital.doctors.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name} — {d.specialty}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Date
-              </span>
-              <input
-                type="date"
-                value={date}
-                min={today()}
-                onChange={(e) => setDate(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-medical-400 focus:bg-white"
-              />
-            </label>
-
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Available slots
-              </span>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {doctor.slots.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setTime(s)}
-                    className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold transition ${
-                      time === s
-                        ? "bg-medical-600 text-white shadow-sm shadow-medical-500/30"
-                        : "bg-slate-100 text-slate-600 hover:bg-medical-50 hover:text-medical-700"
-                    }`}
-                  >
-                    <Clock size={14} />
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Reason for visit (optional)
-              </span>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
-                placeholder="Briefly describe your symptoms or the purpose of the visit"
-                className="mt-1.5 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-medical-400 focus:bg-white"
-              />
-            </label>
-
-            {error && (
-              <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 ring-1 ring-rose-100">
-                {error}
-              </p>
-            )}
-
-            <button
-              onClick={handleBook}
-              className="w-full rounded-xl bg-medical-600 py-3 text-sm font-semibold text-white shadow-sm shadow-medical-500/30 transition hover:bg-medical-700"
-            >
-              Confirm appointment
-            </button>
-          </div>
-        </section>
-
-        <div className="space-y-5">
-          {confirmed && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="rounded-3xl bg-emerald-50 p-5 ring-1 ring-emerald-100"
-            >
-              <p className="flex items-center gap-2 text-sm font-bold text-emerald-800">
-                <CheckCircle2 size={18} />
-                Appointment confirmed
-              </p>
-              <p className="mt-2 text-sm text-emerald-900">
-                {confirmed.doctorName} · {confirmed.specialty}
-              </p>
-              <p className="text-xs text-emerald-800">
-                {confirmed.hospitalName} · {confirmed.date} at {confirmed.time}
-              </p>
-              <p className="mt-2 text-[11px] font-medium text-emerald-700">
-                Booking reference {confirmed.id}
-              </p>
-            </motion.div>
-          )}
-
-          <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 md:p-6">
-            <h2 className="flex items-center gap-2 text-base font-bold text-slate-800">
-              <CalendarClock size={18} className="text-medical-600" />
-              Your appointments
-            </h2>
-
-            {list.length === 0 ? (
-              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-6 text-center text-xs text-slate-500">
-                No appointments yet. Book one using the form to see it here.
-              </p>
-            ) : (
-              <ul className="mt-4 space-y-3">
-                {list.map((a) => (
-                  <li key={a.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
-                          <Stethoscope size={14} className="text-medical-600" />
-                          {a.doctorName}
-                        </p>
-                        <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
-                          <HospitalIcon size={13} className="text-medical-500" />
-                          {a.hospitalName}
-                        </p>
-                        <p className="mt-1 text-xs font-medium text-medical-700">
-                          {a.date} at {a.time} · {a.specialty}
-                        </p>
-                        {a.reason && (
-                          <p className="mt-1 text-xs text-slate-500">Reason: {a.reason}</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleCancel(a.id)}
-                        aria-label={`Cancel appointment with ${a.doctorName}`}
-                        className="shrink-0 rounded-xl p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <p className="mt-1 text-sm text-slate-500">
+            Appointment status and booking details are loaded from your account.
+          </p>
         </div>
+        <Link
+          to="/patient/find-doctor"
+          className="rounded-xl bg-medical-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-medical-700"
+        >
+          Find a doctor
+        </Link>
       </div>
+
+      {error && (
+        <p role="alert" className="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-3xl bg-white p-10 text-sm text-slate-500 shadow-sm ring-1 ring-slate-200/70">
+          <Loader2 size={18} className="animate-spin" />
+          Loading your appointments…
+        </div>
+      ) : appointments.length === 0 ? (
+        <div className="rounded-3xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200/70">
+          <CalendarClock size={28} className="mx-auto text-slate-300" />
+          <p className="mt-3 text-sm font-semibold text-slate-700">No appointments yet</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Book a consultation with a doctor to see it here.
+          </p>
+        </div>
+      ) : (
+        <ul className="space-y-3">
+          {appointments.map((appointment) => {
+            const canCancel =
+              appointment.status === "requested" || appointment.status === "confirmed";
+            const mapsUrl = appointment.clinicAddress
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appointment.clinicAddress)}`
+              : null;
+            return (
+              <li
+                key={appointment.id}
+                className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                      <Stethoscope size={16} className="text-medical-600" />
+                      {appointment.doctorName}
+                      {appointment.specialty && (
+                        <span className="font-normal text-slate-500">
+                          · {appointment.specialty}
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                      <Hospital size={15} className="text-medical-500" />
+                      {appointment.clinicName || "Clinic details unavailable"}
+                    </p>
+                    <p className="mt-1 flex items-center gap-2 text-sm text-slate-600">
+                      <Clock size={15} className="text-medical-500" />
+                      {appointment.date} at {appointment.time}
+                    </p>
+                    {appointment.reason && (
+                      <p className="mt-2 text-xs text-slate-500">Reason: {appointment.reason}</p>
+                    )}
+                  </div>
+                  <span className="rounded-full bg-medical-50 px-3 py-1 text-xs font-semibold capitalize text-medical-700">
+                    {statusLabel(appointment.status)}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                  {mapsUrl && (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                    >
+                      <MapPin size={14} />
+                      Directions
+                    </a>
+                  )}
+                  {canCancel && (
+                    <button
+                      type="button"
+                      disabled={busyId === appointment.id}
+                      onClick={() => void cancel(appointment.id)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                    >
+                      {busyId === appointment.id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={14} />
+                      )}
+                      Cancel appointment
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </PatientShell>
   );
 }

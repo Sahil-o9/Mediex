@@ -78,7 +78,7 @@ The TanStack Start app, including its `/api/*` routes, deploys as one Vercel app
 
 1. Push the project to GitHub and import that repository into Vercel. Set the project root to the repository root.
 2. Use Node.js 22 or newer. The build command is `npm run build`; Nitro's Vercel preset produces the deployment output.
-3. Add these environment variables in **Project Settings → Environment Variables** for Production (and Preview if needed):
+3. Add these environment variables in **Project Settings → Environment Variables** for Production (and Preview if needed). Add only the listed values; do not import the local `.env` wholesale. In particular, do not set `NODE_ENV=development` in Vercel—Vercel sets the correct production mode for production deployments.
 
    | Variable | Value |
    | --- | --- |

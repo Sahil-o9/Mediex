@@ -217,7 +217,7 @@ const en = {
     activityQuestions: "Assistant questions",
     nothingYet: "Nothing recorded yet — try the AI assistant or upload a report to get started.",
     emergencyTitle: "Emergency assistance",
-    emergencyDesc: "Helplines and nearby 24x7 hospitals",
+    emergencyDesc: "Helplines and verified hospital listings",
   },
   assistant: {
     title: "AI Health Assistant",
@@ -385,7 +385,7 @@ const en = {
   },
   emergency: {
     title: "Emergency Assistance",
-    subtitle: "Fast access to helplines, your contact person and 24x7 hospitals",
+    subtitle: "Fast access to helplines, your contact person and verified care listings",
     inEmergency: "In an emergency",
     callNow: "Call 112 immediately",
     callDesc:
@@ -398,7 +398,7 @@ const en = {
     emergencyContact: "Emergency contact",
     addContactHint:
       "Add an emergency contact and blood group on your Profile page so they appear here.",
-    nearest: "Nearest 24x7 hospitals",
+    nearest: "Verified hospitals and clinics",
     whileWaiting: "While help is on the way",
     step1: "Stay with the person and keep them calm and still.",
     step2: "Call the emergency number and clearly state the location.",
@@ -636,7 +636,7 @@ const hi: Dictionary = {
     activityQuestions: "सहायक से पूछे सवाल",
     nothingYet: "अभी कुछ दर्ज नहीं है — एआई सहायक से बात करें या रिपोर्ट अपलोड करके शुरुआत करें।",
     emergencyTitle: "इमरजेंसी सहायता",
-    emergencyDesc: "हेल्पलाइन और पास के 24x7 अस्पताल",
+    emergencyDesc: "हेल्पलाइन और सत्यापित अस्पतालों की सूची",
   },
   assistant: {
     title: "एआई स्वास्थ्य सहायक",
@@ -1050,7 +1050,7 @@ const hinglish: Dictionary = {
     nothingYet:
       "Abhi kuch record nahi hai — AI assistant se baat karein ya report upload karke shuru karein.",
     emergencyTitle: "Emergency assistance",
-    emergencyDesc: "Helplines aur paas ke 24x7 hospitals",
+    emergencyDesc: "Helplines aur verified hospitals ki list",
   },
   assistant: {
     title: "AI Health Assistant",
@@ -1218,7 +1218,7 @@ const hinglish: Dictionary = {
   },
   emergency: {
     title: "Emergency Assistance",
-    subtitle: "Helplines, aapka contact person aur 24x7 hospitals turant",
+    subtitle: "Helplines, aapka contact person aur verified care listings turant",
     inEmergency: "Emergency mein",
     callNow: "Turant 112 par call karein",
     callDesc:
@@ -1231,7 +1231,7 @@ const hinglish: Dictionary = {
     emergencyContact: "Emergency contact",
     addContactHint:
       "Profile page par emergency contact aur blood group add karein taaki wo yahan dikhein.",
-    nearest: "Paas ke 24x7 hospitals",
+    nearest: "Verified hospitals aur clinics",
     whileWaiting: "Jab tak help pahunche",
     step1: "Vyakti ke saath rahein aur unhe calm aur still rakhein.",
     step2: "Emergency number par call karein aur location clearly batayein.",

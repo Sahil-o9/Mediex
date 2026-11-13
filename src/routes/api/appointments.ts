@@ -66,7 +66,9 @@ export const Route = createFileRoute("/api/appointments")({
           sharedSummary: b["shareSummary"] ? str(b["shareSummary"], 2000) : "",
         });
         if (!r.ok) return fail(r.error, r.status ?? 400);
-        return json({ appointment: r.appointment }, 201);
+        const appointment = { ...r.appointment };
+        delete appointment.activeSlotKey;
+        return json({ appointment }, 201);
       },
 
       PATCH: async ({ request }) => {
@@ -87,7 +89,10 @@ export const Route = createFileRoute("/api/appointments")({
           id,
           status,
         );
-        return r.ok ? json({ appointment: r.appointment }) : fail(r.error, r.status ?? 400);
+        if (!r.ok) return fail(r.error, r.status ?? 400);
+        const appointment = { ...r.appointment };
+        delete appointment.activeSlotKey;
+        return json({ appointment });
       },
     },
   },

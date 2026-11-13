@@ -47,6 +47,7 @@ function doctor(over: Partial<DoctorProfile> & { id: string }): DoctorProfile {
       lng: 77.391,
       phone: null,
       isDemo: true,
+      verificationStatus: "pending",
     },
     availability: weekdays.map((d) => win(d, "10:00", "13:00")),
     leaves: [],

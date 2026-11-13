@@ -56,8 +56,12 @@ export interface PatientRow extends Row {
   dateOfBirth: string;
   gender: string;
   language: string;
+  abhaId?: string;
+  bloodGroup?: string;
+  emergencyContact?: string;
   consentAt: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ClinicRow extends Row {
@@ -71,6 +75,8 @@ export interface ClinicRow extends Row {
   lng: number | null;
   phone: string;
   isDemo: boolean;
+  verificationStatus?: "pending" | "verified" | "rejected";
+  verifiedAt?: string | null;
 }
 
 export interface DoctorRow extends Row {
@@ -124,6 +130,7 @@ export interface AppointmentRow extends Row {
   doctorId: string;
   appointmentDate: string;
   appointmentTime: string;
+  activeSlotKey?: string;
   status: "requested" | "confirmed" | "completed" | "cancelled" | "no_show";
   reason: string;
   sharedSummary: string;

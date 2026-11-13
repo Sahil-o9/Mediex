@@ -123,6 +123,7 @@ function toClinic(c: ClinicRow): Clinic {
     lng: c.lng,
     phone: c.phone || null,
     isDemo: c.isDemo,
+    verificationStatus: c.verificationStatus ?? "pending",
   };
 }
 
@@ -443,6 +444,16 @@ export async function saveDoctorProfile(
       const sharedWith = (await db.table("doctors").where("clinicId", doc.clinicId)).length;
       if (existing && !existing.isDemo && sharedWith <= 1) owned = existing;
     }
+    const unchanged =
+      owned?.name === c.name.trim() &&
+      owned.kind === c.kind &&
+      owned.addressLine === c.addressLine.trim() &&
+      owned.city === c.city.trim() &&
+      owned.state === c.state.trim() &&
+      owned.pincode === c.pincode.trim() &&
+      owned.lat === c.lat &&
+      owned.lng === c.lng &&
+      owned.phone === c.phone.trim();
     const row: ClinicRow = {
       id: owned?.id ?? newId(),
       name: c.name.trim(),
@@ -455,6 +466,8 @@ export async function saveDoctorProfile(
       lng: c.lng,
       phone: c.phone.trim(),
       isDemo: false,
+      verificationStatus: unchanged ? (owned?.verificationStatus ?? "pending") : "pending",
+      verifiedAt: unchanged ? (owned?.verifiedAt ?? null) : null,
     };
     if (owned) await db.table("clinics").update(owned.id, row);
     else await db.table("clinics").insert(row);
@@ -608,6 +621,7 @@ export async function bookAppointment(
       doctorId: input.doctorId,
       appointmentDate: input.date,
       appointmentTime: input.time,
+      activeSlotKey: `${input.doctorId}:${input.date}:${input.time}`,
       status: "requested",
       reason: input.reason,
       sharedSummary: input.sharedSummary,
@@ -738,9 +752,13 @@ export async function changeAppointmentStatus(
       return { ok: false, error: "visit_not_yet_happened", status: 409 };
   }
 
-  const updated = await db
-    .table("appointments")
-    .update(a.id, { status: next, updatedAt: now.toISOString() });
+  const updated = await db.table("appointments").update(a.id, {
+    status: next,
+    updatedAt: now.toISOString(),
+    activeSlotKey: ACTIVE.includes(next)
+      ? `${a.doctorId}:${a.appointmentDate}:${a.appointmentTime}`
+      : `${a.id}:closed`,
+  });
   if (!updated) return { ok: false, error: "not_found", status: 404 };
 
   if (next === "completed") {
@@ -971,6 +989,153 @@ export async function adminSetVerification(
         ? { verificationStatus: "rejected", verificationSource: "", verifiedAt: null }
         : { verificationStatus: "pending", verificationSource: "", verifiedAt: null },
   );
+  return { ok: true };
+}
+
+export async function searchHospitals(
+  db: Db,
+  input: {
+    query: string;
+    city: string;
+    specialty: string;
+    page: number;
+    pageSize: number;
+    hospitalId?: string;
+  },
+) {
+  const [clinics, profiles] = await Promise.all([
+    db.table("clinics").all(),
+    loadBundle(db).then(assemble),
+  ]);
+  const byClinic = new Map<string, typeof profiles>();
+  for (const profile of profiles) {
+    const clinicId = profile.clinic?.id;
+    if (!clinicId) continue;
+    const doctors = byClinic.get(clinicId) ?? [];
+    doctors.push(profile);
+    byClinic.set(clinicId, doctors);
+  }
+
+  const query = input.query.trim().toLocaleLowerCase();
+  const city = input.city.trim().toLocaleLowerCase();
+  const matching = clinics
+    .filter(
+      (clinic) =>
+        !clinic.isDemo &&
+        clinic.verificationStatus === "verified" &&
+        (!input.hospitalId || clinic.id === input.hospitalId),
+    )
+    .map((clinic) => {
+      const doctors = byClinic.get(clinic.id) ?? [];
+      return {
+        id: clinic.id,
+        name: clinic.name,
+        kind: clinic.kind,
+        addressLine: clinic.addressLine,
+        city: clinic.city,
+        state: clinic.state,
+        pincode: clinic.pincode,
+        phone: clinic.phone || null,
+        lat: clinic.lat,
+        lng: clinic.lng,
+        specialties: [...new Set(doctors.flatMap((doctor) => doctor.specialties))],
+        doctors: doctors.map((doctor) => ({
+          id: doctor.id,
+          fullName: doctor.fullName,
+          specialties: doctor.specialties,
+          qualifications: doctor.qualifications,
+          experienceYears: doctor.experienceYears,
+          consultationFee: doctor.consultationFee,
+          verificationStatus: doctor.verificationStatus,
+        })),
+      };
+    })
+    .filter((hospital) => !city || hospital.city.toLocaleLowerCase() === city)
+    .filter(
+      (hospital) =>
+        !input.specialty || hospital.specialties.some((specialty) => specialty === input.specialty),
+    )
+    .filter((hospital) => {
+      if (!query) return true;
+      const haystack = [
+        hospital.name,
+        hospital.addressLine,
+        hospital.city,
+        hospital.state,
+        ...hospital.doctors.map((doctor) => doctor.fullName),
+      ]
+        .join(" ")
+        .toLocaleLowerCase();
+      return haystack.includes(query);
+    })
+    .sort((a, b) => a.city.localeCompare(b.city) || a.name.localeCompare(b.name));
+  const offset = (input.page - 1) * input.pageSize;
+  return {
+    hospitals: matching.slice(offset, offset + input.pageSize),
+    total: matching.length,
+    page: input.page,
+    pageSize: input.pageSize,
+    cities: [
+      ...new Set(
+        clinics
+          .filter((clinic) => !clinic.isDemo && clinic.verificationStatus === "verified")
+          .map((clinic) => clinic.city),
+      ),
+    ].sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+export async function adminListHospitals(db: Db) {
+  const [clinics, doctors] = await Promise.all([
+    db.table("clinics").all(),
+    db.table("doctors").all(),
+  ]);
+  const doctorsByClinic = new Map<string, DoctorRow[]>();
+  for (const doctor of doctors) {
+    if (!doctor.clinicId) continue;
+    const items = doctorsByClinic.get(doctor.clinicId) ?? [];
+    items.push(doctor);
+    doctorsByClinic.set(doctor.clinicId, items);
+  }
+  return clinics
+    .filter((clinic) => !clinic.isDemo)
+    .map((clinic) => ({
+      id: clinic.id,
+      name: clinic.name,
+      kind: clinic.kind,
+      addressLine: clinic.addressLine,
+      city: clinic.city,
+      state: clinic.state,
+      pincode: clinic.pincode,
+      phone: clinic.phone,
+      status: clinic.verificationStatus ?? "pending",
+      doctors: (doctorsByClinic.get(clinic.id) ?? []).map((doctor) => ({
+        id: doctor.id,
+        fullName: doctor.fullName,
+        verificationStatus: doctor.verificationStatus,
+      })),
+    }));
+}
+
+export async function adminSetHospitalVerification(
+  db: Db,
+  clinicId: string,
+  decision: "verify" | "reject" | "reset",
+  now: Date = new Date(),
+): Promise<{ ok: true } | Failure> {
+  const clinic = await db.table("clinics").get(clinicId);
+  if (!clinic) return { ok: false, error: "not_found", status: 404 };
+  if (clinic.isDemo) return { ok: false, error: "demo_profile", status: 409 };
+  await db
+    .table("clinics")
+    .update(
+      clinicId,
+      decision === "verify"
+        ? { verificationStatus: "verified", verifiedAt: now.toISOString() }
+        : decision === "reject"
+          ? { verificationStatus: "rejected", verifiedAt: null }
+          : { verificationStatus: "pending", verifiedAt: null },
+    );
   return { ok: true };
 }
 

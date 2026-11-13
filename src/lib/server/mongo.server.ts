@@ -24,6 +24,12 @@ async function connect(uri: string): Promise<MongoDatabase> {
     await db
       .collection("accounts")
       .createIndex({ role: 1, identifier: 1 }, { unique: true, name: "role_identifier_unique" });
+    await db
+      .collection("appointments")
+      .createIndex(
+        { activeSlotKey: 1 },
+        { unique: true, sparse: true, name: "appointment_active_slot_unique" },
+      );
     return db;
   } catch (error) {
     globalMongo.__mediexMongo = undefined;

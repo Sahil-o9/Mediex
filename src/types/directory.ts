@@ -98,6 +98,30 @@ export interface Clinic {
   lng: number | null;
   phone: string | null;
   isDemo: boolean;
+  verificationStatus: "pending" | "verified" | "rejected";
+}
+
+export interface HospitalDirectoryEntry {
+  id: string;
+  name: string;
+  kind: "hospital" | "clinic";
+  addressLine: string;
+  city: string;
+  state: string;
+  pincode: string;
+  phone: string | null;
+  lat: number | null;
+  lng: number | null;
+  specialties: SpecialtyId[];
+  doctors: {
+    id: string;
+    fullName: string;
+    specialties: SpecialtyId[];
+    qualifications: string;
+    experienceYears: number | null;
+    consultationFee: number | null;
+    verificationStatus: VerificationStatus;
+  }[];
 }
 
 export interface AvailabilityWindow {

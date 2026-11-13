@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminHospitalsRouteImport } from './routes/admin/hospitals'
 import { Route as ApiAppointmentsRouteImport } from './routes/api/appointments'
 import { Route as ApiAssistantRouteImport } from './routes/api/assistant'
 import { Route as ApiCaseSummaryRouteImport } from './routes/api/case-summary'
@@ -28,6 +29,7 @@ import { Route as PatientHospitalsRouteImport } from './routes/patient/hospitals
 import { Route as PatientProfileRouteImport } from './routes/patient/profile'
 import { Route as PatientReportsRouteImport } from './routes/patient/reports'
 import { Route as ApiAdminDoctorsRouteImport } from './routes/api/admin/doctors'
+import { Route as ApiAdminHospitalsRouteImport } from './routes/api/admin/hospitals'
 import { Route as ApiAdminReviewsRouteImport } from './routes/api/admin/reviews'
 import { Route as ApiAuthDoctorRouteImport } from './routes/api/auth/doctor'
 import { Route as ApiAuthOtpRouteImport } from './routes/api/auth/otp'
@@ -38,13 +40,21 @@ import { Route as ApiDoctorProfileRouteImport } from './routes/api/doctor/profil
 import { Route as ApiDoctorScheduleRouteImport } from './routes/api/doctor/schedule'
 import { Route as ApiDoctorsIndexRouteImport } from './routes/api/doctors/index'
 import { Route as ApiDocumentsAnalyzeRouteImport } from './routes/api/documents/analyze'
+import { Route as ApiHospitalsIndexRouteImport } from './routes/api/hospitals/index'
+import { Route as ApiPatientProfileRouteImport } from './routes/api/patient/profile'
 import { Route as ApiCasesCaseIdIndexRouteImport } from './routes/api/cases/$caseId/index'
 import { Route as ApiDoctorsDoctorIdIndexRouteImport } from './routes/api/doctors/$doctorId/index'
+import { Route as ApiHospitalsHospitalIdIndexRouteImport } from './routes/api/hospitals/$hospitalId/index'
 import { Route as ApiCasesCaseIdDocumentsDocIdRouteImport } from './routes/api/cases/$caseId/documents/$docId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminHospitalsRoute = AdminHospitalsRouteImport.update({
+  id: '/admin/hospitals',
+  path: '/admin/hospitals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAppointmentsRoute = ApiAppointmentsRouteImport.update({
@@ -137,6 +147,11 @@ const ApiAdminDoctorsRoute = ApiAdminDoctorsRouteImport.update({
   path: '/api/admin/doctors',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminHospitalsRoute = ApiAdminHospitalsRouteImport.update({
+  id: '/api/admin/hospitals',
+  path: '/api/admin/hospitals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminReviewsRoute = ApiAdminReviewsRouteImport.update({
   id: '/api/admin/reviews',
   path: '/api/admin/reviews',
@@ -187,6 +202,16 @@ const ApiDocumentsAnalyzeRoute = ApiDocumentsAnalyzeRouteImport.update({
   path: '/api/documents/analyze',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHospitalsIndexRoute = ApiHospitalsIndexRouteImport.update({
+  id: '/api/hospitals/',
+  path: '/api/hospitals/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPatientProfileRoute = ApiPatientProfileRouteImport.update({
+  id: '/api/patient/profile',
+  path: '/api/patient/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCasesCaseIdIndexRoute = ApiCasesCaseIdIndexRouteImport.update({
   id: '/api/cases/$caseId/',
   path: '/api/cases/$caseId/',
@@ -197,6 +222,12 @@ const ApiDoctorsDoctorIdIndexRoute = ApiDoctorsDoctorIdIndexRouteImport.update({
   path: '/api/doctors/$doctorId/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHospitalsHospitalIdIndexRoute =
+  ApiHospitalsHospitalIdIndexRouteImport.update({
+    id: '/api/hospitals/$hospitalId/',
+    path: '/api/hospitals/$hospitalId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCasesCaseIdDocumentsDocIdRoute =
   ApiCasesCaseIdDocumentsDocIdRouteImport.update({
     id: '/api/cases/$caseId/documents/$docId',
@@ -206,6 +237,7 @@ const ApiCasesCaseIdDocumentsDocIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/hospitals': typeof AdminHospitalsRoute
   '/api/appointments': typeof ApiAppointmentsRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/case-summary': typeof ApiCaseSummaryRoute
@@ -224,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/patient/profile': typeof PatientProfileRoute
   '/patient/reports': typeof PatientReportsRoute
   '/api/admin/doctors': typeof ApiAdminDoctorsRoute
+  '/api/admin/hospitals': typeof ApiAdminHospitalsRoute
   '/api/admin/reviews': typeof ApiAdminReviewsRoute
   '/api/auth/doctor': typeof ApiAuthDoctorRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -232,14 +265,18 @@ export interface FileRoutesByFullPath {
   '/api/doctor/profile': typeof ApiDoctorProfileRoute
   '/api/doctor/schedule': typeof ApiDoctorScheduleRoute
   '/api/documents/analyze': typeof ApiDocumentsAnalyzeRoute
+  '/api/patient/profile': typeof ApiPatientProfileRoute
   '/api/cases/': typeof ApiCasesIndexRoute
   '/api/doctors/': typeof ApiDoctorsIndexRoute
+  '/api/hospitals/': typeof ApiHospitalsIndexRoute
   '/api/cases/$caseId/': typeof ApiCasesCaseIdIndexRoute
   '/api/doctors/$doctorId/': typeof ApiDoctorsDoctorIdIndexRoute
+  '/api/hospitals/$hospitalId/': typeof ApiHospitalsHospitalIdIndexRoute
   '/api/cases/$caseId/documents/$docId': typeof ApiCasesCaseIdDocumentsDocIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/hospitals': typeof AdminHospitalsRoute
   '/api/appointments': typeof ApiAppointmentsRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/case-summary': typeof ApiCaseSummaryRoute
@@ -258,6 +295,7 @@ export interface FileRoutesByTo {
   '/patient/profile': typeof PatientProfileRoute
   '/patient/reports': typeof PatientReportsRoute
   '/api/admin/doctors': typeof ApiAdminDoctorsRoute
+  '/api/admin/hospitals': typeof ApiAdminHospitalsRoute
   '/api/admin/reviews': typeof ApiAdminReviewsRoute
   '/api/auth/doctor': typeof ApiAuthDoctorRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -266,15 +304,19 @@ export interface FileRoutesByTo {
   '/api/doctor/profile': typeof ApiDoctorProfileRoute
   '/api/doctor/schedule': typeof ApiDoctorScheduleRoute
   '/api/documents/analyze': typeof ApiDocumentsAnalyzeRoute
+  '/api/patient/profile': typeof ApiPatientProfileRoute
   '/api/cases': typeof ApiCasesIndexRoute
   '/api/doctors': typeof ApiDoctorsIndexRoute
+  '/api/hospitals': typeof ApiHospitalsIndexRoute
   '/api/cases/$caseId': typeof ApiCasesCaseIdIndexRoute
   '/api/doctors/$doctorId': typeof ApiDoctorsDoctorIdIndexRoute
+  '/api/hospitals/$hospitalId': typeof ApiHospitalsHospitalIdIndexRoute
   '/api/cases/$caseId/documents/$docId': typeof ApiCasesCaseIdDocumentsDocIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/hospitals': typeof AdminHospitalsRoute
   '/api/appointments': typeof ApiAppointmentsRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/case-summary': typeof ApiCaseSummaryRoute
@@ -293,6 +335,7 @@ export interface FileRoutesById {
   '/patient/profile': typeof PatientProfileRoute
   '/patient/reports': typeof PatientReportsRoute
   '/api/admin/doctors': typeof ApiAdminDoctorsRoute
+  '/api/admin/hospitals': typeof ApiAdminHospitalsRoute
   '/api/admin/reviews': typeof ApiAdminReviewsRoute
   '/api/auth/doctor': typeof ApiAuthDoctorRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -301,16 +344,20 @@ export interface FileRoutesById {
   '/api/doctor/profile': typeof ApiDoctorProfileRoute
   '/api/doctor/schedule': typeof ApiDoctorScheduleRoute
   '/api/documents/analyze': typeof ApiDocumentsAnalyzeRoute
+  '/api/patient/profile': typeof ApiPatientProfileRoute
   '/api/cases/': typeof ApiCasesIndexRoute
   '/api/doctors/': typeof ApiDoctorsIndexRoute
+  '/api/hospitals/': typeof ApiHospitalsIndexRoute
   '/api/cases/$caseId/': typeof ApiCasesCaseIdIndexRoute
   '/api/doctors/$doctorId/': typeof ApiDoctorsDoctorIdIndexRoute
+  '/api/hospitals/$hospitalId/': typeof ApiHospitalsHospitalIdIndexRoute
   '/api/cases/$caseId/documents/$docId': typeof ApiCasesCaseIdDocumentsDocIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin/hospitals'
     | '/api/appointments'
     | '/api/assistant'
     | '/api/case-summary'
@@ -329,6 +376,7 @@ export interface FileRouteTypes {
     | '/patient/profile'
     | '/patient/reports'
     | '/api/admin/doctors'
+    | '/api/admin/hospitals'
     | '/api/admin/reviews'
     | '/api/auth/doctor'
     | '/api/auth/otp'
@@ -337,14 +385,18 @@ export interface FileRouteTypes {
     | '/api/doctor/profile'
     | '/api/doctor/schedule'
     | '/api/documents/analyze'
+    | '/api/patient/profile'
     | '/api/cases/'
     | '/api/doctors/'
+    | '/api/hospitals/'
     | '/api/cases/$caseId/'
     | '/api/doctors/$doctorId/'
+    | '/api/hospitals/$hospitalId/'
     | '/api/cases/$caseId/documents/$docId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin/hospitals'
     | '/api/appointments'
     | '/api/assistant'
     | '/api/case-summary'
@@ -363,6 +415,7 @@ export interface FileRouteTypes {
     | '/patient/profile'
     | '/patient/reports'
     | '/api/admin/doctors'
+    | '/api/admin/hospitals'
     | '/api/admin/reviews'
     | '/api/auth/doctor'
     | '/api/auth/otp'
@@ -371,14 +424,18 @@ export interface FileRouteTypes {
     | '/api/doctor/profile'
     | '/api/doctor/schedule'
     | '/api/documents/analyze'
+    | '/api/patient/profile'
     | '/api/cases'
     | '/api/doctors'
+    | '/api/hospitals'
     | '/api/cases/$caseId'
     | '/api/doctors/$doctorId'
+    | '/api/hospitals/$hospitalId'
     | '/api/cases/$caseId/documents/$docId'
   id:
     | '__root__'
     | '/'
+    | '/admin/hospitals'
     | '/api/appointments'
     | '/api/assistant'
     | '/api/case-summary'
@@ -397,6 +454,7 @@ export interface FileRouteTypes {
     | '/patient/profile'
     | '/patient/reports'
     | '/api/admin/doctors'
+    | '/api/admin/hospitals'
     | '/api/admin/reviews'
     | '/api/auth/doctor'
     | '/api/auth/otp'
@@ -405,15 +463,19 @@ export interface FileRouteTypes {
     | '/api/doctor/profile'
     | '/api/doctor/schedule'
     | '/api/documents/analyze'
+    | '/api/patient/profile'
     | '/api/cases/'
     | '/api/doctors/'
+    | '/api/hospitals/'
     | '/api/cases/$caseId/'
     | '/api/doctors/$doctorId/'
+    | '/api/hospitals/$hospitalId/'
     | '/api/cases/$caseId/documents/$docId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminHospitalsRoute: typeof AdminHospitalsRoute
   ApiAppointmentsRoute: typeof ApiAppointmentsRoute
   ApiAssistantRoute: typeof ApiAssistantRoute
   ApiCaseSummaryRoute: typeof ApiCaseSummaryRoute
@@ -432,6 +494,7 @@ export interface RootRouteChildren {
   PatientProfileRoute: typeof PatientProfileRoute
   PatientReportsRoute: typeof PatientReportsRoute
   ApiAdminDoctorsRoute: typeof ApiAdminDoctorsRoute
+  ApiAdminHospitalsRoute: typeof ApiAdminHospitalsRoute
   ApiAdminReviewsRoute: typeof ApiAdminReviewsRoute
   ApiAuthDoctorRoute: typeof ApiAuthDoctorRoute
   ApiAuthOtpRoute: typeof ApiAuthOtpRoute
@@ -440,10 +503,13 @@ export interface RootRouteChildren {
   ApiDoctorProfileRoute: typeof ApiDoctorProfileRoute
   ApiDoctorScheduleRoute: typeof ApiDoctorScheduleRoute
   ApiDocumentsAnalyzeRoute: typeof ApiDocumentsAnalyzeRoute
+  ApiPatientProfileRoute: typeof ApiPatientProfileRoute
   ApiCasesIndexRoute: typeof ApiCasesIndexRoute
   ApiDoctorsIndexRoute: typeof ApiDoctorsIndexRoute
+  ApiHospitalsIndexRoute: typeof ApiHospitalsIndexRoute
   ApiCasesCaseIdIndexRoute: typeof ApiCasesCaseIdIndexRoute
   ApiDoctorsDoctorIdIndexRoute: typeof ApiDoctorsDoctorIdIndexRoute
+  ApiHospitalsHospitalIdIndexRoute: typeof ApiHospitalsHospitalIdIndexRoute
   ApiCasesCaseIdDocumentsDocIdRoute: typeof ApiCasesCaseIdDocumentsDocIdRoute
 }
 
@@ -454,6 +520,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/hospitals': {
+      id: '/admin/hospitals'
+      path: '/admin/hospitals'
+      fullPath: '/admin/hospitals'
+      preLoaderRoute: typeof AdminHospitalsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/appointments': {
@@ -582,6 +655,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminDoctorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/hospitals': {
+      id: '/api/admin/hospitals'
+      path: '/api/admin/hospitals'
+      fullPath: '/api/admin/hospitals'
+      preLoaderRoute: typeof ApiAdminHospitalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/reviews': {
       id: '/api/admin/reviews'
       path: '/api/admin/reviews'
@@ -652,6 +732,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDocumentsAnalyzeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/hospitals/': {
+      id: '/api/hospitals/'
+      path: '/api/hospitals'
+      fullPath: '/api/hospitals/'
+      preLoaderRoute: typeof ApiHospitalsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/patient/profile': {
+      id: '/api/patient/profile'
+      path: '/api/patient/profile'
+      fullPath: '/api/patient/profile'
+      preLoaderRoute: typeof ApiPatientProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cases/$caseId/': {
       id: '/api/cases/$caseId/'
       path: '/api/cases/$caseId'
@@ -666,6 +760,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDoctorsDoctorIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/hospitals/$hospitalId/': {
+      id: '/api/hospitals/$hospitalId/'
+      path: '/api/hospitals/$hospitalId'
+      fullPath: '/api/hospitals/$hospitalId/'
+      preLoaderRoute: typeof ApiHospitalsHospitalIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cases/$caseId/documents/$docId': {
       id: '/api/cases/$caseId/documents/$docId'
       path: '/api/cases/$caseId/documents/$docId'
@@ -678,6 +779,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminHospitalsRoute: AdminHospitalsRoute,
   ApiAppointmentsRoute: ApiAppointmentsRoute,
   ApiAssistantRoute: ApiAssistantRoute,
   ApiCaseSummaryRoute: ApiCaseSummaryRoute,
@@ -696,6 +798,7 @@ const rootRouteChildren: RootRouteChildren = {
   PatientProfileRoute: PatientProfileRoute,
   PatientReportsRoute: PatientReportsRoute,
   ApiAdminDoctorsRoute: ApiAdminDoctorsRoute,
+  ApiAdminHospitalsRoute: ApiAdminHospitalsRoute,
   ApiAdminReviewsRoute: ApiAdminReviewsRoute,
   ApiAuthDoctorRoute: ApiAuthDoctorRoute,
   ApiAuthOtpRoute: ApiAuthOtpRoute,
@@ -704,10 +807,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDoctorProfileRoute: ApiDoctorProfileRoute,
   ApiDoctorScheduleRoute: ApiDoctorScheduleRoute,
   ApiDocumentsAnalyzeRoute: ApiDocumentsAnalyzeRoute,
+  ApiPatientProfileRoute: ApiPatientProfileRoute,
   ApiCasesIndexRoute: ApiCasesIndexRoute,
   ApiDoctorsIndexRoute: ApiDoctorsIndexRoute,
+  ApiHospitalsIndexRoute: ApiHospitalsIndexRoute,
   ApiCasesCaseIdIndexRoute: ApiCasesCaseIdIndexRoute,
   ApiDoctorsDoctorIdIndexRoute: ApiDoctorsDoctorIdIndexRoute,
+  ApiHospitalsHospitalIdIndexRoute: ApiHospitalsHospitalIdIndexRoute,
   ApiCasesCaseIdDocumentsDocIdRoute: ApiCasesCaseIdDocumentsDocIdRoute,
 }
 export const routeTree = rootRouteImport

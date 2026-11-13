@@ -544,6 +544,8 @@ export function buildSeed(todayIst: string, createdAt: string): SeedData {
     lng: c.lng,
     phone: "",
     isDemo: true,
+    verificationStatus: "pending",
+    verifiedAt: null,
   }));
 
   const doctors: DoctorRow[] = [];

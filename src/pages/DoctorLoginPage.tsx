@@ -36,7 +36,7 @@ export default function DoctorLoginPage() {
       setError(errorText(res.error));
       return;
     }
-    navigate(res.role === "admin" ? "/admin" : "/doctor/dashboard");
+    navigate(res.role === "admin" ? "/admin/hospitals" : "/doctor/dashboard");
   }
 
   return (
